@@ -1,0 +1,65 @@
+name: Deploy to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Write Firebase service account
+        # keep the secret name FIREBASE_SERVICE_ACCOUNT but write it to a file
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          # If the secret is raw JSON (starts with '{') write it directly.
+          # Otherwise attempt to base64-decode it; if decoding fails, fall back to writing the raw value.
+          out="$HOME/firebase_key.json"
+          first_char="${FIREBASE_SERVICE_ACCOUNT:0:1}"
+          if [[ "$first_char" == '{' ]]; then
+            printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$out"
+          else
+            echo "$FIREBASE_SERVICE_ACCOUNT" | base64 --decode > "$out" 2>/dev/null || printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$out"
+          fi
+          chmod 600 "$out"
+          echo "Wrote service account to $out"
+
+      
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ github.workspace }}/firebase_key.json
+
+      - name: Deploy to Firebase
+        uses: w9jds/firebase-action@v2.2.0
+        with:
+          args: deploy --only hosting
+        env:
+          # point Google credentials to the file we just wrote
+          GOOGLE_APPLICATION_CREDENTIALS: $HOME/firebase_key.json

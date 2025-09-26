@@ -1,0 +1,415 @@
+@keyframes main-bounce {
+  0% { opacity: 0; transform: scale(0.92) rotate(-2deg); }
+  40% { opacity: 1; transform: scale(1.04) rotate(2deg); }
+  70% { transform: scale(0.98) rotate(-1deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+.main-bounce {
+  animation: main-bounce 900ms cubic-bezier(.22,.9,.3,1) both;
+}
+
+.app-root { background: linear-gradient(180deg,#f2fbf5,#e9fff0); min-height:100vh; padding:24px 0 }
+.app-root::before { content:''; position:fixed; inset:0; background-image: radial-gradient(rgba(6,95,60,0.02) 1px, transparent 1px); background-size: 48px 48px; pointer-events:none; z-index:0 }
+
+@media (prefers-reduced-motion: reduce) {
+  .main-bounce { animation: none !important; }
+}
+/* react-calendar custom styles */
+.react-calendar {
+  font-family: 'Inter', sans-serif;
+  background-color: #ffffff;
+  border-radius: 6px;
+  padding: 0.5rem;
+  box-shadow: 0 14px 40px rgba(2,6,23,0.06);
+}
+
+.react-calendar__tile--active {
+  background: #114B2B !important; /* dark green */
+  color: #eaf8ef !important;
+  border-radius: 4px;
+}
+
+.highlight {
+  background: #f6ad55 !important; /* orange.300 */
+  color: white;
+  border-radius: 8px;
+}
+
+/* Entrance animation for pages: gentle fade + lift */
+@keyframes pill-enter {
+  from { opacity: 0; transform: translateY(10px) scale(0.995); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.enter-animate {
+  animation: pill-enter 420ms cubic-bezier(.2,.9,.2,1) both;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .enter-animate { animation: none; }
+}
+
+/* Staggered pop for button items */
+@keyframes stagger-pop {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.stagger-pop {
+  animation-name: stagger-pop;
+  animation-duration: 360ms;
+  animation-timing-function: cubic-bezier(.2,.9,.2,1);
+  animation-fill-mode: both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stagger-pop { animation: none !important; }
+}
+
+/* Playful hover: quick lift + gentle wobble */
+@keyframes playful-wobble {
+  0% { transform: translateY(0) rotate(0deg) scale(1); }
+  15% { transform: translateY(-6px) rotate(-2deg) scale(1.03); }
+  40% { transform: translateY(-8px) rotate(3deg) scale(1.04); }
+  70% { transform: translateY(-4px) rotate(-1deg) scale(1.02); }
+  100% { transform: translateY(0) rotate(0deg) scale(1); }
+}
+
+.playful-hover:hover,
+.playful-hover:focus {
+  animation: playful-wobble 560ms cubic-bezier(.22,.9,.3,1) both;
+  box-shadow: 0 18px 36px rgba(17,75,43,0.12) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .playful-hover { animation: none !important; }
+}
+
+/* small bounce for the selected item after entrance or on change */
+@keyframes pop-bounce {
+  0% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-6px) scale(1.03); }
+  60% { transform: translateY(-3px) scale(1.01); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+.pop-bounce {
+  animation: pop-bounce 420ms cubic-bezier(.22,.9,.3,1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pop-bounce { animation: none !important; }
+}
+
+/* Calendar-specific styles */
+.islamic-holiday { 
+  background: linear-gradient(180deg,#fef3c7,#fcd34d) !important; /* warm gold */
+  color: #1f2937 !important;
+  border-radius: 8px;
+}
+.prophet-holiday {
+  box-shadow: 0 10px 28px rgba(16,185,129,0.12) !important; /* green accent */
+  border: 1px solid rgba(16,185,129,0.08) !important;
+}
+
+/* Calendar entrance: stagger each day tile slightly */
+@keyframes tile-entrance {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.calendar-root .react-calendar__tile {
+  animation-name: tile-entrance;
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(.2,.9,.2,1);
+  animation-fill-mode: both;
+}
+
+/* per-day delays (1-31). small increments to create a pleasing cascade */
+.calendar-root .react-calendar__tile.day-1 { animation-delay: 10ms }
+.calendar-root .react-calendar__tile.day-2 { animation-delay: 25ms }
+.calendar-root .react-calendar__tile.day-3 { animation-delay: 40ms }
+.calendar-root .react-calendar__tile.day-4 { animation-delay: 55ms }
+.calendar-root .react-calendar__tile.day-5 { animation-delay: 70ms }
+.calendar-root .react-calendar__tile.day-6 { animation-delay: 85ms }
+.calendar-root .react-calendar__tile.day-7 { animation-delay: 100ms }
+.calendar-root .react-calendar__tile.day-8 { animation-delay: 115ms }
+.calendar-root .react-calendar__tile.day-9 { animation-delay: 130ms }
+.calendar-root .react-calendar__tile.day-10 { animation-delay: 145ms }
+.calendar-root .react-calendar__tile.day-11 { animation-delay: 160ms }
+.calendar-root .react-calendar__tile.day-12 { animation-delay: 175ms }
+.calendar-root .react-calendar__tile.day-13 { animation-delay: 190ms }
+.calendar-root .react-calendar__tile.day-14 { animation-delay: 205ms }
+.calendar-root .react-calendar__tile.day-15 { animation-delay: 220ms }
+.calendar-root .react-calendar__tile.day-16 { animation-delay: 235ms }
+.calendar-root .react-calendar__tile.day-17 { animation-delay: 250ms }
+.calendar-root .react-calendar__tile.day-18 { animation-delay: 265ms }
+.calendar-root .react-calendar__tile.day-19 { animation-delay: 280ms }
+.calendar-root .react-calendar__tile.day-20 { animation-delay: 295ms }
+.calendar-root .react-calendar__tile.day-21 { animation-delay: 310ms }
+.calendar-root .react-calendar__tile.day-22 { animation-delay: 325ms }
+.calendar-root .react-calendar__tile.day-23 { animation-delay: 340ms }
+.calendar-root .react-calendar__tile.day-24 { animation-delay: 355ms }
+.calendar-root .react-calendar__tile.day-25 { animation-delay: 370ms }
+.calendar-root .react-calendar__tile.day-26 { animation-delay: 385ms }
+.calendar-root .react-calendar__tile.day-27 { animation-delay: 400ms }
+.calendar-root .react-calendar__tile.day-28 { animation-delay: 415ms }
+.calendar-root .react-calendar__tile.day-29 { animation-delay: 430ms }
+.calendar-root .react-calendar__tile.day-30 { animation-delay: 445ms }
+.calendar-root .react-calendar__tile.day-31 { animation-delay: 460ms }
+
+/* Make the calendar bigger and more spacious */
+.big-calendar { font-size: 16px; }
+.big-calendar .react-calendar__tile { padding: 12px 6px; min-height:64px; border-radius:6px }
+
+/* Day modal styles */
+.day-modal-overlay {
+  position: fixed; inset:0; display:flex; align-items:center; justify-content:center; background: rgba(2,6,23,0.35); z-index:99999;
+}
+.day-modal { background: linear-gradient(180deg,#fbfff9,#f0fff4); padding:18px; border-radius:12px; width:820px; max-width:94%; box-shadow:0 20px 60px rgba(2,6,23,0.18); color: #114B2B }
+
+/* Spiritual prompt outline animation on first load */
+.prompt-animate {
+  animation: prompt-entry 700ms cubic-bezier(.2,.9,.2,1) both;
+  position: relative;
+}
+.prompt-animate::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(17,75,43,0.06);
+  opacity: 0;
+  transition: opacity 400ms ease-in-out 300ms;
+}
+.prompt-animate:hover::after { opacity: 1 }
+@keyframes prompt-entry {
+  from { opacity: 0; transform: translateY(6px) scale(0.995) }
+  to { opacity: 1; transform: translateY(0) scale(1) }
+}
+
+/* Weekday header colors (react-calendar renders Sun..Sat by default) */
+.react-calendar__month-view__weekdays__weekday {
+  font-weight: 700;
+  color: #114B2B; /* dark green for all weekdays */
+}
+
+/* Creative button in the calendar header and other prominent spots */
+.creative-btn {
+  background: linear-gradient(180deg,#16a34a,#0f8a3a);
+  color: #eafff0;
+  padding: 0.6em 0.9em;
+  border-radius: 14px;
+  border: none;
+  font-weight: 700;
+  box-shadow: 0 12px 36px rgba(16,120,80,0.14);
+  transition: transform 300ms cubic-bezier(.16,.9,.3,1), box-shadow 300ms ease;
+}
+.creative-btn:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 28px 60px rgba(16,120,80,0.18); }
+
+/* floating emblem animation */
+@keyframes floaty {
+  0% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-8px) rotate(-1deg); }
+  100% { transform: translateY(0) rotate(0); }
+}
+.floaty { animation: floaty 3200ms ease-in-out infinite; }
+
+/* soft pulse glow for the opening card */
+@keyframes soft-pulse {
+  0% { box-shadow: 0 8px 24px rgba(16,120,80,0.06); }
+  50% { box-shadow: 0 18px 48px rgba(16,185,129,0.12); }
+  100% { box-shadow: 0 8px 24px rgba(16,120,80,0.06); }
+}
+.soft-pulse { animation: soft-pulse 1800ms ease-in-out infinite; }
+
+/* Save loading card and spinner */
+.save-loading-card { background: linear-gradient(180deg,#fbfff9,#f0fff4); box-shadow: 0 20px 60px rgba(2,6,23,0.08); border:1px solid rgba(6,95,60,0.04); z-index:10 }
+.save-spinner { width:64px; height:64px; border-radius:12px; background: linear-gradient(180deg,#e6fff2,#f1fff6); display:flex; align-items:center; justify-content:center; box-shadow:0 10px 28px rgba(16,185,129,0.08); transform-origin:center }
+.save-spinner-inner { font-size:28px; animation: spinner-rotate 1600ms linear infinite }
+@keyframes spinner-rotate { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+
+/* Mini-map bottom-left */
+.mini-map {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 9999;
+  box-shadow: 0 10px 24px rgba(2,6,23,0.10);
+  background: rgba(255,255,255,0.94);
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(6,95,60,0.06);
+}
+.mini-map iframe { display:block; border-radius:6px; transition: filter 240ms ease, opacity 240ms ease }
+
+.mini-map .compass { box-shadow: 0 10px 26px rgba(2,6,23,0.12); border: 1px solid rgba(6,95,60,0.08); background: rgba(255,255,255,0.96); color: #065f67 }
+.mini-map .compass-needle { display:flex; align-items:center; justify-content:center }
+.mini-map .compass-needle svg path { fill: #065f67 }
+.mini-map .compass-needle div { transform-origin:center }
+
+/* Day modal timeline */
+.timeline { background: linear-gradient(180deg,#f8fffb,#f0fff4); border-radius:12px; border:1px solid rgba(6,95,60,0.04); position:relative }
+.timeline::before { content:''; position:absolute; left:36px; top:12px; bottom:12px; width:2px; background: linear-gradient(180deg,#cdeed8,#e9fff0); border-radius:2px }
+.timeline-marker { padding:6px 10px; }
+.timeline-marker.selected { transform: translateY(-50%) scale(1.02); }
+
+/* small shimmer used on buttons */
+@keyframes shimmer {
+  0% { background-position: -120% 0; }
+  100% { background-position: 220% 0; }
+}
+.btn-shimmer {
+  background-image: linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.06) 100%);
+  background-size: 220% 100%;
+}
+.btn-shimmer:hover { animation: shimmer 900ms linear both; }
+
+/* Prayer circles at top */
+.prayer-circles { align-items: center }
+.prayer-circle { width:64px; text-align:center; cursor:pointer }
+.prayer-circle .prayer-circle-inner { width:64px; height:64px; border-radius:50%; background: linear-gradient(180deg,#effff2,#e6fff7); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(2,6,23,0.06); transition: transform 240ms ease, box-shadow 240ms ease }
+.prayer-circle .prayer-time { font-weight:800; color:#0b5138; font-size:13px }
+.prayer-circle .prayer-label { margin-top:4px; font-size:11px; color:#065f67; font-weight:700 }
+.prayer-circle:hover .prayer-circle-inner { transform: translateY(-6px); box-shadow:0 22px 46px rgba(16,120,80,0.12) }
+.prayer-next .prayer-circle-inner { background: linear-gradient(180deg,#16a34a,#0f8a3a); color:#f7fff7; box-shadow:0 28px 64px rgba(16,185,129,0.16); transform: scale(1.04) }
+
+/* subtle ring pulse for the highlighted prayer */
+@keyframes ring-pulse { 0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.12) } 70% { box-shadow: 0 0 0 12px rgba(16,185,129,0) } 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0) } }
+.prayer-next .prayer-circle-inner { animation: ring-pulse 2200ms ease-out infinite }
+
+/* Staggered entrance for the five prayer circles */
+.prayer-circles .prayer-circle { opacity:0; transform: translateY(6px) scale(0.995); animation: circle-enter 520ms cubic-bezier(.2,.9,.2,1) both }
+.prayer-circles .prayer-circle:nth-child(1){ animation-delay: 60ms }
+.prayer-circles .prayer-circle:nth-child(2){ animation-delay: 140ms }
+.prayer-circles .prayer-circle:nth-child(3){ animation-delay: 220ms }
+.prayer-circles .prayer-circle:nth-child(4){ animation-delay: 300ms }
+.prayer-circles .prayer-circle:nth-child(5){ animation-delay: 380ms }
+@keyframes circle-enter { from { opacity:0; transform: translateY(12px) scale(0.985) } to { opacity:1; transform: translateY(0) scale(1) } }
+
+/* stronger hover effect for day cards to signal clickability */
+.calendar-root div[role="button"] { transition: transform .18s ease, box-shadow .18s ease }
+.calendar-root div[role="button"]:hover { transform: translateY(-6px); box-shadow: 0 22px 48px rgba(6,95,60,0.08) }
+
+/* Paper-style calendar aesthetics */
+.calendar-root.paper {
+  background: linear-gradient(180deg,#fffef9,#fbfbf6); /* subtle warm paper */
+  border-radius: 18px;
+  box-shadow: 0 22px 50px rgba(6,95,60,0.06);
+  border: 1px solid rgba(6,95,60,0.04);
+}
+
+.calendar-root.paper .paper-header {
+  display:flex; align-items:center; justify-content:space-between; gap:12; padding:12px 18px; background: linear-gradient(90deg,#f4efe6,#fffdf8); border-bottom:1px dashed rgba(6,95,60,0.06);
+  box-shadow: inset 0 -6px 12px rgba(2,6,23,0.02);
+}
+
+/* small perforation dots at top to mimic tear-off calendar pages */
+.calendar-root.paper::before{
+  content:''; display:block; position:absolute; left:50%; transform:translateX(-50%); top:8px; width:80%; height:8px; background-image: radial-gradient(rgba(6,95,60,0.06) 2px, transparent 2px); background-size:12px 8px; border-radius:6px; opacity:0.6
+}
+
+.paper-month-strip{ font-weight:800; color:#08392d; background:#fff; padding:6px 12px; border-radius:8px; box-shadow:0 6px 18px rgba(2,6,23,0.04); }
+
+/* day tiles look like printed squares on paper with subtle grid lines */
+.calendar-root.paper .day-tile{
+  background: linear-gradient(180deg,#fff,#fffef8);
+  border:1px solid rgba(6,95,60,0.06);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 8px 20px rgba(2,6,23,0.04);
+}
+
+.calendar-root.paper .day-tile .day-label{ color:#08392d; font-weight:700 }
+.calendar-root.paper .day-tile .day-time{ color:#0b5138 }
+
+/* subtle paper texture using a very light noise gradient */
+.calendar-root.paper { background-image: linear-gradient(180deg,#fffef9,#fbfbf6), repeating-linear-gradient(45deg, rgba(0,0,0,0.002) 0 1px, transparent 1px 4px); }
+
+/* Month header like sample: big month title */
+.month-calendar-header{ text-align:center; font-weight:800; font-size:34px; letter-spacing:1px; color:#0b5138; margin-bottom:6px }
+.month-calendar-sub{ text-align:center; font-size:12px; color:#065f67; margin-bottom:10px }
+
+/* make cells look like boxed calendar squares with subtle ink border */
+.month-calendar{ gap:6px }
+.month-calendar .day-tile{ min-height:56px; padding:6px 6px; border:1px solid rgba(2,6,23,0.06); background:#fffefc; display:flex; flex-direction:column; justify-content:space-between }
+
+/* per-cell animation: faster and more subtle for compact mode */
+.month-calendar .day-tile{ opacity:0; transform: translateY(4px) scale(0.997); animation: cell-appear 360ms cubic-bezier(.2,.9,.2,1) both; animation-delay: calc(var(--i) * 22ms) }
+@keyframes cell-appear{ from{ opacity:0; transform: translateY(6px) scale(0.995) } to{ opacity:1; transform: translateY(0) scale(1) } }
+
+/* minor hover effect for compact tiles */
+.month-calendar .day-tile:hover{ transform: translateY(-3px) scale(1.002); box-shadow: 0 8px 14px rgba(2,6,23,0.04) }
+
+/* When top area is hidden, reduce top spacing and tighten header */
+.calendar-root.hide-top .prayer-circles, .calendar-root.hide-top .daily-surah { display:none }
+.calendar-root.hide-top .month-calendar{ margin-top: -6px }
+
+/* prevent vertical scrolling inside the card; let tiles scale to fit */
+.month-calendar{ overflow:hidden }
+
+/* If header animations are disabled by the user, stop the circle entrance animations */
+.no-header-anim .prayer-circles .prayer-circle { animation: none !important; transform: none !important; opacity:1 !important }
+
+/* Staggered tile entrance for the week-grid for nicer cascade */
+.calendar-root .day-modal + .day-modal, .calendar-root .week-grid .day-tile { opacity:0; transform: translateY(8px) scale(0.995); animation: tile-stagger 420ms cubic-bezier(.2,.9,.2,1) both }
+.calendar-root .week-grid .day-tile:nth-child(1){ animation-delay: 10ms }
+.calendar-root .week-grid .day-tile:nth-child(2){ animation-delay: 50ms }
+.calendar-root .week-grid .day-tile:nth-child(3){ animation-delay: 90ms }
+.calendar-root .week-grid .day-tile:nth-child(4){ animation-delay: 130ms }
+.calendar-root .week-grid .day-tile:nth-child(5){ animation-delay: 170ms }
+.calendar-root .week-grid .day-tile:nth-child(6){ animation-delay: 210ms }
+.calendar-root .week-grid .day-tile:nth-child(7){ animation-delay: 250ms }
+@keyframes tile-stagger { from { opacity:0; transform: translateY(10px) scale(0.985) } to { opacity:1; transform: translateY(0) scale(1) } }
+
+/* daily surah card */
+.daily-surah { transition: transform 300ms cubic-bezier(.16,.9,.3,1); }
+.daily-surah:hover { transform: translateY(-6px); box-shadow:0 26px 60px rgba(16,185,129,0.12) }
+
+/* compact week grid responsiveness */
+@media (max-width: 900px) {
+  .prayer-circle { width:64px }
+  .prayer-circle .prayer-circle-inner { width:64px; height:64px }
+  .big-calendar { font-size:16px }
+}
+
+/* reduce visual clutter on smaller screens: make week grid scroll horizontally if needed */
+.calendar-root .week-scroll { overflow-x:auto; padding-bottom:6px }
+.calendar-root .week-scroll > div { min-width: 80px }
+
+/* week-grid: make columns distribute and shrink to fit, with small gaps */
+.week-grid { display:grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap:8px }
+.week-grid .day-tile { min-height:88px; padding:8px; border-radius:10px }
+.week-grid .day-tile .day-label { font-size:12px }
+.week-grid .day-tile .day-time { font-size:13px }
+
+@media (max-width:640px){
+  .week-grid { grid-template-columns: repeat(7, 1fr); overflow-x:auto }
+  .week-grid .day-tile { min-width:84px }
+}
+
+/* Onboarding modal special styling: gentle glow + pulse to draw friendly attention */
+.onboarding-modal {
+  position: relative;
+  overflow: visible;
+  border-radius: 14px;
+  box-shadow: 0 26px 70px rgba(6,95,60,0.12), 0 2px 0 rgba(255,255,255,0.02) inset;
+  animation: onboarding-pulse 2200ms ease-in-out infinite;
+}
+@keyframes onboarding-pulse {
+  0% { box-shadow: 0 18px 48px rgba(6,95,60,0.06); transform: translateY(0) }
+  50% { box-shadow: 0 30px 80px rgba(16,185,129,0.12); transform: translateY(-4px) }
+  100% { box-shadow: 0 18px 48px rgba(6,95,60,0.06); transform: translateY(0) }
+}
+
+/* Respect user's reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-modal { animation: none !important; }
+}
+
+/* focus outline for keyboard users on creative buttons */
+.creative-btn:focus { outline: 3px solid rgba(16,185,129,0.18); outline-offset: 3px }
+
+/* small GMT label next to times */
+.gmt-label { font-size:11px; color:#065f67; opacity:0.85; margin-left:6px }
+
+
