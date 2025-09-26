@@ -10,8 +10,11 @@
     "test": "vitest",
     "cy:open": "cypress open",
     "cy:run": "cypress run --spec \"cypress/e2e/ui.cy.js\"",
-    "preview": "vite preview",
-    "clean-install": "powershell -Command \"Stop-Process -Name node,esbuild -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force node_modules, package-lock.json -ErrorAction SilentlyContinue; npm install\""
+  "preview": "vite preview",
+  "clean-install": "powershell -Command \"Stop-Process -Name node,esbuild -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force node_modules, package-lock.json -ErrorAction SilentlyContinue; npm install\"",
+  "smoke:node": "node scripts/smoke_test_proxy.js",
+  "smoke:ps1": "powershell -ExecutionPolicy Bypass -File scripts\\smoke_test_proxy.ps1",
+  "smoke": "npm run smoke:node"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.27.0",
