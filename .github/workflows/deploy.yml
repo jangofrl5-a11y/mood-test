@@ -9,9 +9,9 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
 
-    env:
-      # Expose the Gemini API key to the build step (Vite reads VITE_ prefixed vars at build time)
-      VITE_GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
+    # Do NOT expose the Gemini API key as a VITE_ prefixed env var during build.
+    # The recommended pattern is to keep the key server-side (Functions config) and
+    # use the Functions proxy to keep secrets off the client bundle.
     steps:
       - name: Checkout
         uses: actions/checkout@v3

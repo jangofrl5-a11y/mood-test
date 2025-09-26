@@ -179,3 +179,26 @@ cp .env.local.example .env.local
 
 Important: Do NOT commit `.env.local` or your real API keys to the repository. Use GitHub Actions secrets for CI.
 
+## Server-side proxy (recommended)
+
+To avoid exposing the Gemini API key in client bundles, the repository includes a minimal Firebase Functions proxy under `functions/` which forwards requests to the Gemini endpoint using a server-side key.
+
+Setup and deploy the function:
+
+1. Ensure Firebase Functions are enabled for your project (Firebase Console → Functions) and you have `firebase-tools` installed.
+
+2. Set the Gemini key in Functions config (runs on your machine, not committed):
+
+```powershell
+# replace NEW_KEY_HERE with the real key
+firebase functions:config:set gemini.key="NEW_KEY_HERE"
+
+# deploy the functions folder
+firebase deploy --only functions
+```
+
+3. The function exposes an HTTPS endpoint `proxyGemini` which your frontend can call (POST). It will forward the request to the Gemini endpoint using the server-side key.
+
+Security note: Restrict the function (IAM or App Check) as appropriate and only expose the minimal endpoints you need. Do not log or return full secrets.
+
+
