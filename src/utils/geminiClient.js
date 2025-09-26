@@ -1,7 +1,7 @@
 // Simple client helper to call the Firebase Functions Gemini proxy
 // Usage: import { generateText } from '../utils/geminiClient';
 
-const DEFAULT_PROXY = (import.meta.env && import.meta.env.VITE_GEMINI_PROXY_URL) || '/proxyGemini';
+const DEFAULT_PROXY = (import.meta.env && import.meta.env.VITE_GEMINI_PROXY_URL) || '/api/proxyGemini';
 
 /**
  * Generate text using server-side Gemini proxy.

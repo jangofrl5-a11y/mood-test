@@ -30,6 +30,10 @@
     "cleanUrls": true,
     "rewrites": [
       {
+        "source": "/api/proxyGemini",
+        "function": "proxyGemini"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

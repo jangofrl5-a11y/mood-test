@@ -19,7 +19,7 @@ Notes:
 
 ### Using the server-side Gemini proxy
 
-We provide a small frontend helper at `src/utils/geminiClient.js` which POSTs to the Functions proxy endpoint (`/proxyGemini` by default).
+We provide a small frontend helper at `src/utils/geminiClient.js` which POSTs to the Functions proxy endpoint (`/api/proxyGemini` by default). The repo's `firebase.json` includes a rewrite so this path is routed to the `proxyGemini` function.
 
 Minimal example:
 
