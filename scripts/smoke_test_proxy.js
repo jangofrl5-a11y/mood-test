@@ -5,7 +5,8 @@
 const fetch = require('node-fetch');
 
 async function main() {
-  const url = process.argv[2] || 'http://localhost:5001/YOUR_PROJECT/us-central1/proxyGemini';
+  const url = process.argv[2] || process.env.SMOKE_PROXY_URL || 'http://localhost:5001/YOUR_PROJECT/us-central1/proxyGemini';
+  const token = process.argv[3] || process.env.SMOKE_PROXY_TOKEN || '';
   console.log('Testing proxy at', url);
 
   const body = {
@@ -15,9 +16,12 @@ async function main() {
   };
 
   try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['x-proxy-token'] = token;
+
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(body)
     });
 

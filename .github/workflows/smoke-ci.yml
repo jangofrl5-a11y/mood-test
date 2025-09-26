@@ -1,0 +1,40 @@
+name: Smoke tests (Functions emulator)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start Firebase emulators
+        run: |
+          npm i -g firebase-tools
+          firebase setup:emulators:firestore || true
+          firebase emulators:start --only functions &
+          sleep 5
+
+      - name: Wait for emulator
+        run: npx wait-on http://localhost:5001 || true
+
+      - name: Run smoke test
+        env:
+          SMOKE_PROXY_URL: http://localhost:5001/YOUR_PROJECT/us-central1/proxyGemini
+          SMOKE_PROXY_TOKEN: ${{ secrets.PROXY_TOKEN }}
+          # The emulator can read functions config from local environment if you set it here
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          node scripts/smoke_test_proxy.js "$SMOKE_PROXY_URL" "$SMOKE_PROXY_TOKEN"

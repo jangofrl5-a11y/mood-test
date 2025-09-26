@@ -35,3 +35,21 @@ async function askGemini() {
 Notes:
 - Do NOT keep your Gemini API key in `.env.local` as `VITE_GEMINI_KEY` for production — this exposes the key to the client bundle. Use the server proxy instead.
 - If you need a local-only key for experimentation, keep it out of commits and delete it before pushing or switch to using the Functions emulator with a local secret.
+
+Proxy token and CI smoke tests
+---------------------------------
+
+You can optionally enable a small shared token to prevent anonymous use of the `proxyGemini` function.
+Set it in Functions config:
+
+```powershell
+firebase functions:config:set proxy.token="SOME_SECRET"
+firebase deploy --only functions
+```
+
+When enabled the proxy requires callers to set the `x-proxy-token` header with the token value.
+
+CI smoke-test workflow
+-----------------------
+
+We've added a workflow at `.github/workflows/smoke-ci.yml` that starts the Functions emulator and runs the Node smoke test. To enable it you must add `GEMINI_API_KEY` and `PROXY_TOKEN` as repository secrets in GitHub (used only by the emulator in CI). The workflow is optional and intended for preview channel validation.
