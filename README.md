@@ -166,3 +166,16 @@ Minimal workflow snippet using token (shell deploy):
 	firebase deploy --only hosting --token "${{ secrets.FIREBASE_TOKEN }}"
 ```
 
+
+## Local environment variables
+
+For local development you can keep secrets out of source control by creating a `.env.local` file at the project root. A safe example is provided in `.env.local.example`. Copy it and add your real API keys locally:
+
+```powershell
+# from the repository root
+cp .env.local.example .env.local
+# then edit .env.local and replace the placeholder with your real key
+```
+
+Important: Do NOT commit `.env.local` or your real API keys to the repository. Use GitHub Actions secrets for CI.
+
