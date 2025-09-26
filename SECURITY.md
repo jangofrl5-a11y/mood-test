@@ -13,6 +13,11 @@ This document summarizes recommended security practices when using the Gemini pr
 - Use Firebase App Check to ensure only your app instances can call the function.
 - Register the app in the Firebase console and enable App Check providers (Play Integrity, DeviceCheck, reCAPTCHA v3, or custom).
 - Note: true App Check enforcement should be enabled in the Firebase console and verified server-side with the Admin SDK. This repo includes an optional header check; adapt to your security needs.
+ 
+Server-side App Check verification
+---------------------------------
+
+This project now performs App Check verification in the Functions proxy using the Firebase Admin SDK when the `x-firebase-appcheck` header is present. For verification to work in production the Admin SDK must be initialized with valid credentials. Usually this is provided automatically in Cloud Functions runtimes, but when developing locally or in CI you may need to set `GOOGLE_APPLICATION_CREDENTIALS` to a service-account JSON.
 
 ## Monitoring & Logging
 

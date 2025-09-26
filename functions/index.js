@@ -1,5 +1,16 @@
 const functions = require('firebase-functions');
 const fetch = require('node-fetch');
+const admin = require('firebase-admin');
+
+// Initialize Admin SDK if not already initialized. In production the environment
+// will provide credentials via GOOGLE_APPLICATION_CREDENTIALS or the runtime.
+try {
+  if (!admin.apps || !admin.apps.length) {
+    admin.initializeApp();
+  }
+} catch (err) {
+  console.warn('firebase-admin initializeApp warning:', err.message || err);
+}
 
 // Read key from functions config or environment
 const KEY = (functions.config() && functions.config().gemini && functions.config().gemini.key) || process.env.GEMINI_API_KEY;
@@ -30,13 +41,15 @@ exports.proxyGemini = functions.https.onRequest(async (req, res) => {
   }
 
   // Optional: If App Check token is present and App Check is enabled in your project,
-  // verify it here. This is a lightweight check — for robust enforcement configure
-  // App Check in the Firebase console and enforce it via security rules or on the server.
+  // verify it here using the Admin SDK. This requires that the Admin SDK has valid
+  // credentials (usually provided in the deployed function environment).
   const appCheckToken = req.get('x-firebase-appcheck') || req.get('X-Firebase-AppCheck') || '';
   if (appCheckToken) {
-    // For demo purposes we only perform a basic format check. Full verification would require
-    // calling the App Check verification endpoint or using the Admin SDK with credentials.
-    if (appCheckToken.length < 20) {
+    try {
+      // admin.appCheck().verifyToken throws if invalid
+      await admin.appCheck().verifyToken(appCheckToken);
+    } catch (err) {
+      console.warn('App Check verification failed:', err && err.message);
       return res.status(401).send('Unauthorized: invalid App Check token');
     }
   }

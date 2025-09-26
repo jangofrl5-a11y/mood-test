@@ -63,3 +63,8 @@ There's an optional `post-deploy-smoke.yml` workflow that can run the Node smoke
 - `PROXY_TOKEN` - the proxy token if you enabled one
 
 The workflow will call `HOSTING_URL/api/proxyGemini` and fail if the proxy does not return a successful response.
+
+App Check verification
+----------------------
+
+The Functions proxy now verifies App Check tokens server-side using the Firebase Admin SDK when the `x-firebase-appcheck` header is present. Ensure the Admin SDK has credentials in the runtime (Cloud Functions provides these automatically). For local testing or CI emulators, set `GOOGLE_APPLICATION_CREDENTIALS` to a service account JSON if you need Admin SDK verification to succeed.
