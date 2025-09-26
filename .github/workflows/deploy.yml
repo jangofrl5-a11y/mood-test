@@ -41,6 +41,4 @@ jobs:
         uses: w9jds/firebase-action@v2.2.0
         with:
           args: deploy --only hosting
-        env:
-          # point Google credentials to the file we just wrote
-          GOOGLE_APPLICATION_CREDENTIALS: $HOME/firebase_key.json
+        env: {}
