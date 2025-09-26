@@ -10,7 +10,8 @@
     "test": "vitest",
     "cy:open": "cypress open",
     "cy:run": "cypress run --spec \"cypress/e2e/ui.cy.js\"",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "clean-install": "powershell -Command \"Stop-Process -Name node,esbuild -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force node_modules, package-lock.json -ErrorAction SilentlyContinue; npm install\""
   },
   "dependencies": {
     "@chakra-ui/react": "^3.27.0",
