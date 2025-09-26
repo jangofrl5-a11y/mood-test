@@ -14,7 +14,8 @@
   "clean-install": "powershell -Command \"Stop-Process -Name node,esbuild -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force node_modules, package-lock.json -ErrorAction SilentlyContinue; npm install\"",
   "smoke:node": "node scripts/smoke_test_proxy.js",
   "smoke:ps1": "powershell -ExecutionPolicy Bypass -File scripts\\smoke_test_proxy.ps1",
-  "smoke": "npm run smoke:node"
+  "smoke": "npm run smoke:node",
+  "smoke:all": "npm run smoke:node && npm run smoke:ps1"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.27.0",
