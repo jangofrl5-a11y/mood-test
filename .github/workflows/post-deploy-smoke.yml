@@ -8,9 +8,18 @@ on:
 
 jobs:
   post_deploy_smoke:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && secrets.HOSTING_URL }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Ensure HOSTING_URL secret is set
+        run: |
+          if [ -z "$HOSTING_URL" ]; then echo "HOSTING_URL secret is missing — set it in repository secrets to enable post-deploy smoke tests"; exit 1; fi
+        env:
+          HOSTING_URL: ${{ secrets.HOSTING_URL }}
+
+      - name: Ensure PROXY_TOKEN secret is set (if you enabled proxy token)
+        run: |
+          echo "If your proxy requires a token, ensure PROXY_TOKEN is set as a repo secret."
       - name: Checkout
         uses: actions/checkout@v3
 
