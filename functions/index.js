@@ -29,6 +29,18 @@ exports.proxyGemini = functions.https.onRequest(async (req, res) => {
     }
   }
 
+  // Optional: If App Check token is present and App Check is enabled in your project,
+  // verify it here. This is a lightweight check — for robust enforcement configure
+  // App Check in the Firebase console and enforce it via security rules or on the server.
+  const appCheckToken = req.get('x-firebase-appcheck') || req.get('X-Firebase-AppCheck') || '';
+  if (appCheckToken) {
+    // For demo purposes we only perform a basic format check. Full verification would require
+    // calling the App Check verification endpoint or using the Admin SDK with credentials.
+    if (appCheckToken.length < 20) {
+      return res.status(401).send('Unauthorized: invalid App Check token');
+    }
+  }
+
   try {
     const body = req.body || {};
 

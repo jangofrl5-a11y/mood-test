@@ -53,3 +53,13 @@ CI smoke-test workflow
 -----------------------
 
 We've added a workflow at `.github/workflows/smoke-ci.yml` that starts the Functions emulator and runs the Node smoke test. To enable it you must add `GEMINI_API_KEY` and `PROXY_TOKEN` as repository secrets in GitHub (used only by the emulator in CI). The workflow is optional and intended for preview channel validation.
+
+Post-deploy smoke tests
+-----------------------
+
+There's an optional `post-deploy-smoke.yml` workflow that can run the Node smoke test against your hosted site after a successful hosting deploy. To enable it, add the following repository secrets:
+
+- `HOSTING_URL` - the base URL of your hosted site (for example `https://your-app.web.app`)
+- `PROXY_TOKEN` - the proxy token if you enabled one
+
+The workflow will call `HOSTING_URL/api/proxyGemini` and fail if the proxy does not return a successful response.
