@@ -3,6 +3,7 @@ import Mood from './pages/mood';
 import DailyModal from './components/DailyModal';
 import Toast from './components/Toast';
 import CalendarView from './components/calendarview';
+import PrayerSlider from './components/PrayerSlider';
 
 function todayKey(){
   const d = new Date();
@@ -142,7 +143,10 @@ function App() {
             </div>
           </div>
         ) : (
-          <Mood onSave={handleSave} onOpenCalendar={openCalendarFromHeader} hasSaved={hasSaved} />
+          <div>
+            <PrayerSlider onOpenCalendar={openCalendarFromHeader} />
+            <Mood onSave={handleSave} onOpenCalendar={openCalendarFromHeader} hasSaved={hasSaved} />
+          </div>
         )
       )}
       {showCalendar && <CalendarView animate={animateCalendar} />}

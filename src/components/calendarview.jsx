@@ -59,6 +59,30 @@ export default function CalendarView({ animate }) {
       return base
     }catch(e){ return { lat:null, lon:null, notify:false, method: 'MuslimWorldLeague', prayerOffsets:{Fajr:0,Dhuhr:0,Asr:0,Maghrib:0,Isha:0}, prayerOverrides:{} } }
   })
+  // load manual override file (public/manual_prayer_times.json) and merge into settings.prayerOverrides
+  useEffect(()=>{
+    (async ()=>{
+      try{
+        const resp = await fetch('/manual_prayer_times.json', { cache: 'no-store' })
+        if(!resp.ok) return
+        const json = await resp.json()
+        const arr = json && Array.isArray(json.overrides) ? json.overrides : []
+        if(arr.length === 0) return
+        const current = (settings && settings.prayerOverrides) ? {...settings.prayerOverrides} : {}
+        arr.forEach(item => {
+          if(!item || !item.date || !item.times) return
+          // convert keys to the capitalized keys used by computePrayerTimesForDate
+          const mapped = {}
+          const mapKey = k => ({fajr:'Fajr', dhuhr:'Dhuhr', asr:'Asr', maghrib:'Maghrib', isha:'Isha'})[k.toLowerCase()] || k
+          Object.keys(item.times).forEach(k=>{ const mk = mapKey(k); mapped[mk] = item.times[k] })
+          current[item.date] = mapped
+        })
+        const ns = { ...(settings||{}), prayerOverrides: current }
+        setSettings(ns)
+        try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch(e){}
+      }catch(e){ /* ignore */ }
+    })()
+  }, [])
   const [overrideText, setOverrideText] = useState('')
   const [localToast, setLocalToast] = useState(null)
 
@@ -161,7 +185,7 @@ export default function CalendarView({ animate }) {
 
   // Delegate compute to shared util which handles adhan and fallbacks
   function computePrayerTimes(date){
-    return computePrayerTimesForDate(date, settings)
+    return computePrayerTimesForDate(new Date(date), settings)
   }
 
   useEffect(()=>{
