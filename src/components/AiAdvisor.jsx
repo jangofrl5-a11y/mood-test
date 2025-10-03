@@ -28,33 +28,8 @@ export default function AiAdvisor({prompt, autoAsk=false, hideInput=false}){
       setReply('Ask a short question about how to respond spiritually and I will try to help.')
       return
     }
-    const key = import.meta.env.VITE_OPENAI_KEY
-    if(!key){
-      setReply(fallbackAdvice(trimmed))
-      return
-    }
-    setLoading(true)
-    try{
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${key}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [{role:'system', content:'You are a gentle Islamic spiritual advisor. Keep answers short, compassionate, and avoid medical/legal advice.'},{role:'user', content: trimmed}],
-          max_tokens: 220,
-          temperature: 0.6
-        })
-      })
-      const data = await res.json()
-      const text = data?.choices?.[0]?.message?.content || data?.error?.message || ''
-      setReply(text)
-    }catch(e){
-      console.error('ai error', e)
-      setReply(fallbackAdvice(trimmed))
-    }finally{setLoading(false)}
+    // For privacy and offline use we only use the local rule-based fallback here.
+    setReply(fallbackAdvice(trimmed))
   }
 
   React.useEffect(()=>{
