@@ -1,52 +1,9 @@
-name: Deploy to Firebase Hosting
+name: Disabled - Firebase deploy removed
 
-on:
-  push:
-    branches:
-      - main
+on: [workflow_dispatch]
 
 jobs:
-  build_and_deploy:
+  noop:
     runs-on: ubuntu-latest
-
-    env:
-      # Expose the Gemini API key to the build step (Vite reads VITE_ prefixed vars at build time)
-      VITE_GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Cache node modules
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Check Gemini key
-        run: |
-          node --version
-          node scripts/check_gemini_env.js
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v1
-        with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-
-      - name: Deploy to Firebase
-        uses: w9jds/firebase-action@v2.2.0
-        with:
-          args: deploy --only hosting
-        # No credentials file needed; auth is handled by google-github-actions/auth above
+      - run: echo "Firebase deploy workflow has been removed from this repository."

@@ -43,15 +43,8 @@ function main() {
     }
   }
 
-  if (key) {
-    console.log('✅ Gemini key found.');
-    console.log('Masked value:', maskKey(key));
-    process.exit(0);
-  } else {
-    console.error('❌ No Gemini key found.');
-    console.error('Set one locally in `.env.local` as VITE_GEMINI_KEY or add GEMINI_API_KEY as a GitHub secret.');
-    process.exit(2);
-  }
+  console.log('check_gemini_env: removed');
+  process.exit(0);
 }
 
 main();

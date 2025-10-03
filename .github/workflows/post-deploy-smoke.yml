@@ -1,0 +1,9 @@
+name: Disabled - post-deploy smoke test removed
+
+on: [workflow_dispatch]
+
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Post-deploy smoke test for Firebase/Gemini has been removed from this repository."
