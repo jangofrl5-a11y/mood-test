@@ -4,6 +4,7 @@ import DailyModal from './components/DailyModal';
 import Toast from './components/Toast';
 import CalendarView from './components/calendarview';
 import PrayerSlider from './components/PrayerSlider';
+import PrayerScreen from './components/PrayerScreen';
 
 function todayKey(){
   const d = new Date();
@@ -17,6 +18,7 @@ function App() {
   const [showCalendar, setShowCalendar] = useState(false)
   const [animateCalendar, setAnimateCalendar] = useState(false)
   const [isAnimatingSave, setIsAnimatingSave] = useState(false)
+  const [showPrayerScreen, setShowPrayerScreen] = useState(false)
 
   useEffect(()=>{
     const key = todayKey()
@@ -50,6 +52,8 @@ function App() {
       setAnimateCalendar(true)
       setShowCalendar(true)
       setIsAnimatingSave(false)
+      // show prayer screen after the save animation completes
+      setShowPrayerScreen(true)
     })
     // hide the journal content but keep background while animation runs
     setIsAnimatingSave(true)
@@ -144,8 +148,9 @@ function App() {
           </div>
         ) : (
           <div>
-            <PrayerSlider onOpenCalendar={openCalendarFromHeader} />
-            <Mood onSave={handleSave} onOpenCalendar={openCalendarFromHeader} hasSaved={hasSaved} />
+            {!showPrayerScreen && <PrayerSlider onOpenCalendar={openCalendarFromHeader} />}
+            {!showPrayerScreen && <Mood onSave={handleSave} onOpenCalendar={openCalendarFromHeader} hasSaved={hasSaved} />}
+            {showPrayerScreen && <PrayerScreen onDone={()=> setShowPrayerScreen(false)} />}
           </div>
         )
       )}
