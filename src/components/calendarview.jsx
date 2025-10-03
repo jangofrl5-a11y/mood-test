@@ -161,7 +161,7 @@ export default function CalendarView({ animate }) {
 
   // Delegate compute to shared util which handles adhan and fallbacks
   function computePrayerTimes(date){
-    return computePrayerTimesForDate(new Date(date), settings)
+    return computePrayerTimesForDate(date, settings)
   }
 
   useEffect(()=>{

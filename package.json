@@ -10,19 +10,15 @@
     "test": "vitest",
     "cy:open": "cypress open",
     "cy:run": "cypress run --spec \"cypress/e2e/ui.cy.js\"",
-  "preview": "vite preview",
-  "clean-install": "powershell -Command \"Stop-Process -Name node,esbuild -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force node_modules, package-lock.json -ErrorAction SilentlyContinue; npm install\"",
-  "smoke:node": "node scripts/smoke_test_proxy.js",
-  "smoke:ps1": "powershell -ExecutionPolicy Bypass -File scripts\\smoke_test_proxy.ps1",
-  "smoke": "npm run smoke:node",
-  "smoke:all": "npm run smoke:node && npm run smoke:ps1"
+    "preview": "vite preview",
+    "clean-install": "powershell -Command \"Stop-Process -Name node,esbuild -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force node_modules, package-lock.json -ErrorAction SilentlyContinue; npm install\""
   },
   "dependencies": {
     "@chakra-ui/react": "^3.27.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "adhan": "^4.4.3",
-    "firebase": "^12.3.0",
+    
     "framer-motion": "^12.23.19",
     "react": "^19.1.1",
     "react-calendar": "^6.0.0",
