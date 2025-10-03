@@ -413,3 +413,12 @@
 .gmt-label { font-size:11px; color:#065f67; opacity:0.85; margin-left:6px }
 
 
+
+/* Manual override badge */
+.manual-badge { margin-top:6px; font-size:12px; color:#08392d; background: linear-gradient(90deg,#ecfdf5,#f0fff4); padding:6px 8px; border-radius:8px; display:inline-block; font-weight:700 }
+
+/* Modal inputs and secondary button */
+.manual-input { padding:8px; border-radius:8px; border:1px solid rgba(6,95,60,0.06); background:#fff; }
+.btn-secondary { background: transparent; border:1px solid rgba(6,95,60,0.06); padding:0.6em 0.9em; border-radius:10px }
+
+

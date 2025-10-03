@@ -207,7 +207,7 @@ export default function PrayerSlider({ onOpenCalendar }){
           <div>
             <div style={{fontWeight:800, fontSize:18}}>Next prayer</div>
             <div style={{marginTop:4, color:'#065f67', fontWeight:700}}>{next.label} — {next.timeStr || fmt(next.date)}</div>
-            {manualActive && <div style={{marginTop:6, fontSize:12, color:'#0b5138'}}>Using manual override for today</div>}
+            {manualActive && <div className="manual-badge" style={{marginTop:6}}>Using manual override for today</div>}
           </div>
           <div style={{textAlign:'right'}}>
             <div style={{fontSize:22, fontWeight:900}}>{hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m ${seconds}s`}</div>
@@ -231,7 +231,7 @@ export default function PrayerSlider({ onOpenCalendar }){
             {['fajr','dhuhr','asr','maghrib','isha'].map(k=> (
               <label key={k} style={{display:'flex', flexDirection:'column', fontSize:13}}>
                 <span style={{textTransform:'capitalize', marginBottom:6}}>{k}</span>
-                <input defaultValue={ (getStoredOverrides()[new Date().toISOString().slice(0,10)]||{})[k.charAt(0).toUpperCase()+k.slice(1)] || '' } id={`manual-${k}`} style={{padding:8, borderRadius:6, border:'1px solid #e6e6e6'}} />
+                <input className="manual-input" defaultValue={ (getStoredOverrides()[new Date().toISOString().slice(0,10)]||{})[k.charAt(0).toUpperCase()+k.slice(1)] || '' } id={`manual-${k}`} />
               </label>
             ))}
           </div>
@@ -243,7 +243,7 @@ export default function PrayerSlider({ onOpenCalendar }){
               if(Object.keys(times).length){ saveLocalOverride(times) }
               setEditorOpen(false)
             }}>Save</button>
-            <button onClick={()=>setEditorOpen(false)} style={{background:'transparent'}}>Cancel</button>
+            <button className="btn-secondary" onClick={()=>setEditorOpen(false)}>Cancel</button>
           </div>
         </div>
       </div>
