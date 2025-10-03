@@ -41,6 +41,8 @@ export default function PrayerSlider({ onOpenCalendar }){
   const [now, setNow] = useState(new Date())
   const [prayers, setPrayers] = useState(() => buildSampleForToday())
   const [next, setNext] = useState(() => getNextPrayerFromList(new Date(), buildSampleForToday()))
+  const [manualActive, setManualActive] = useState(false)
+  const [editorOpen, setEditorOpen] = useState(false)
 
   const METHOD_KEY = 'prayer_calc_method'
   const MADHAB_KEY = 'prayer_madhab'
@@ -59,7 +61,7 @@ export default function PrayerSlider({ onOpenCalendar }){
 
   useEffect(()=>{
     // load any manual overrides first (only applies to the exact date provided)
-    const loadManual = async () => {
+  const loadManual = async () => {
       try{
         const resp = await fetch('/manual_prayer_times.json', { cache: 'no-store' })
         if(!resp.ok) throw new Error('no manual file')
@@ -70,7 +72,7 @@ export default function PrayerSlider({ onOpenCalendar }){
         const dd = String(today.getDate()).padStart(2,'0')
         const todayKey = `${yyyy}-${mm}-${dd}`
         const override = (json.overrides || []).find(o => o.date === todayKey)
-        if(override && override.times){
+  if(override && override.times){
           // build today's prayer list from override strings (HH:MM)
           const now = new Date()
           const built = ['fajr','dhuhr','asr','maghrib','isha'].map((id, i) => {
@@ -83,6 +85,7 @@ export default function PrayerSlider({ onOpenCalendar }){
           })
           setPrayers(built)
           setNext(getNextPrayerFromList(new Date(), built))
+          setManualActive(true)
           return true
         }
       }catch(e){
@@ -95,7 +98,7 @@ export default function PrayerSlider({ onOpenCalendar }){
       const didManual = await loadManual()
 
       // if no manual override applied, compute with adhan for today
-      if(!didManual){
+  if(!didManual){
       // try to get geolocation and compute prayer times with adhan
       if(navigator && navigator.geolocation){
         const success = (pos) => {
@@ -134,6 +137,35 @@ export default function PrayerSlider({ onOpenCalendar }){
     })()
   }, [])
 
+  // editor helpers: read today's override (from localStorage mood_settings if present)
+  function getTodayKey(){ const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}` }
+  function getStoredOverrides(){ try{ const raw = localStorage.getItem('mood_settings'); if(!raw) return {}; const s = JSON.parse(raw); return (s && s.prayerOverrides) ? s.prayerOverrides : {} }catch(e){ return {} } }
+  function saveLocalOverride(times){ try{
+    const key = getTodayKey()
+    const raw = localStorage.getItem('mood_settings')
+    const base = raw ? JSON.parse(raw) : {}
+    base.prayerOverrides = base.prayerOverrides || {}
+    // map to capitalized keys
+    const mapped = {}
+    const mapKey = k => ({fajr:'Fajr', dhuhr:'Dhuhr', asr:'Asr', maghrib:'Maghrib', isha:'Isha'})[k.toLowerCase()] || k
+    Object.keys(times).forEach(k => { mapped[mapKey(k)] = times[k] })
+    base.prayerOverrides[key] = mapped
+    localStorage.setItem('mood_settings', JSON.stringify(base))
+    // apply to current view
+    const now = new Date()
+    const built = ['fajr','dhuhr','asr','maghrib','isha'].map((id)=>{
+      const ts = times[id]
+      const [h,m] = ts.split(':').map(Number)
+      const d = new Date(now); d.setHours(h||0, m||0, 0, 0)
+      return { id, label: id === 'dhuhr' ? 'Dhuhr' : id.charAt(0).toUpperCase()+id.slice(1), date: d, timeStr: fmt(d) }
+    })
+    setPrayers(built)
+    setNext(getNextPrayerFromList(new Date(), built))
+    setManualActive(true)
+    return true
+  }catch(e){ return false }}
+
+
   useEffect(()=>{
     const id = setInterval(()=>{
       const n = new Date()
@@ -149,6 +181,7 @@ export default function PrayerSlider({ onOpenCalendar }){
   const seconds = Math.max(0, Math.floor((remainingMs / 1000) % 60))
 
   return (
+    <>
     <div className="prayer-slider" style={{maxWidth:920, margin:'8px auto 20px', padding:18, borderRadius:16, background:'linear-gradient(180deg,#ffffff,#f6fff8)', boxShadow:'0 14px 40px rgba(2,6,23,0.06)', display:'flex', alignItems:'center', gap:18}}>
       <div style={{width:96, height:96, borderRadius:12, background:'linear-gradient(180deg,#e6fff2,#f1fff6)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 10px 28px rgba(16,185,129,0.08)'}} aria-hidden>
         <div style={{fontSize:44}}>🕋</div>
@@ -174,6 +207,7 @@ export default function PrayerSlider({ onOpenCalendar }){
           <div>
             <div style={{fontWeight:800, fontSize:18}}>Next prayer</div>
             <div style={{marginTop:4, color:'#065f67', fontWeight:700}}>{next.label} — {next.timeStr || fmt(next.date)}</div>
+            {manualActive && <div style={{marginTop:6, fontSize:12, color:'#0b5138'}}>Using manual override for today</div>}
           </div>
           <div style={{textAlign:'right'}}>
             <div style={{fontSize:22, fontWeight:900}}>{hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m ${seconds}s`}</div>
@@ -183,9 +217,37 @@ export default function PrayerSlider({ onOpenCalendar }){
 
         <div style={{marginTop:12, display:'flex', gap:12, alignItems:'center'}}>
           <button className="creative-btn" onClick={onOpenCalendar} aria-label="Open calendar">View calendar</button>
-          <button className="creative-btn" style={{background:'linear-gradient(180deg,#ffffff,#f3fff8)', color:'#065f67', boxShadow:'0 10px 24px rgba(2,6,23,0.04)'}}>Prayer times</button>
+          <button className="creative-btn" style={{background:'linear-gradient(180deg,#ffffff,#f3fff8)', color:'#065f67', boxShadow:'0 10px 24px rgba(2,6,23,0.04)'}} onClick={()=>setEditorOpen(true)}>Prayer times</button>
+          <button className="creative-btn" style={{background:'#fff3e6', color:'#8a3e00'}} onClick={()=>{ navigator.clipboard?.writeText('/manual_prayer_times.json'); setManualActive(true) }}>Copy manual file path</button>
         </div>
       </div>
     </div>
+    {editorOpen && (
+      <div role="dialog" aria-modal style={{position:'fixed', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.32)', zIndex:20000}}>
+        <div style={{background:'#fff', padding:18, borderRadius:10, width:420}}>
+          <h3 style={{marginTop:0}}>Edit today's manual times</h3>
+          <small>Enter times as HH:MM (24h).</small>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginTop:12}}>
+            {['fajr','dhuhr','asr','maghrib','isha'].map(k=> (
+              <label key={k} style={{display:'flex', flexDirection:'column', fontSize:13}}>
+                <span style={{textTransform:'capitalize', marginBottom:6}}>{k}</span>
+                <input defaultValue={ (getStoredOverrides()[new Date().toISOString().slice(0,10)]||{})[k.charAt(0).toUpperCase()+k.slice(1)] || '' } id={`manual-${k}`} style={{padding:8, borderRadius:6, border:'1px solid #e6e6e6'}} />
+              </label>
+            ))}
+          </div>
+          <div style={{display:'flex', gap:8, justifyContent:'flex-end', marginTop:12}}>
+            <button className="creative-btn" onClick={()=>{ 
+              // gather inputs
+              const times = {}
+              ;['fajr','dhuhr','asr','maghrib','isha'].forEach(k=>{ const v = document.getElementById(`manual-${k}`).value.trim(); if(v) times[k]=v })
+              if(Object.keys(times).length){ saveLocalOverride(times) }
+              setEditorOpen(false)
+            }}>Save</button>
+            <button onClick={()=>setEditorOpen(false)} style={{background:'transparent'}}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
