@@ -1,42 +1,25 @@
 # Security and Monitoring
 
-This document summarizes recommended security practices when using the Gemini proxy and Firebase Functions.
+This file contains general security recommendations for this project. The repository does not include a built-in server-side proxy; if you add one, follow these guidelines.
 
 ## Minimum recommendations
 
-- Keep your Gemini API key only in server-side configuration (Firebase Functions config or environment variables).
-- Do not expose the key in client bundles (avoid VITE_ prefixed production envs).
-- Add a small proxy token (`proxy.token`) to Functions config to reduce anonymous abuse.
-
-## App Check
-
-- Use Firebase App Check to ensure only your app instances can call the function.
-- Register the app in the Firebase console and enable App Check providers (Play Integrity, DeviceCheck, reCAPTCHA v3, or custom).
-- Note: true App Check enforcement should be enabled in the Firebase console and verified server-side with the Admin SDK. This repo includes an optional header check; adapt to your security needs.
- 
-Server-side App Check verification
----------------------------------
-
-This project now performs App Check verification in the Functions proxy using the Firebase Admin SDK when the `x-firebase-appcheck` header is present. For verification to work in production the Admin SDK must be initialized with valid credentials. Usually this is provided automatically in Cloud Functions runtimes, but when developing locally or in CI you may need to set `GOOGLE_APPLICATION_CREDENTIALS` to a service-account JSON.
+- Keep secrets (API keys, service-account JSON) only on the server and out of source control.
+- Do not expose sensitive keys in client bundles or Vite env variables that are published to the browser.
+- Use short-lived credentials and rotate keys regularly.
 
 ## Monitoring & Logging
 
-- Use Cloud Logging to capture errors and request metadata (do not log secrets).
-- Alert on error-rate increases and large usage spikes.
-- Consider per-user quota enforcement and rate limiting inside the function.
+- Capture errors and request metadata in your server-side logs, but never log secrets.
+- Alert on error-rate increases and unusual traffic spikes.
 
 ## Key rotation & incident response
 
-1. Invalidate the compromised key at the provider console.
-2. Create a new Gemini API key.
-3. Update Functions config and redeploy:
-   ```powershell
-   firebase functions:config:set gemini.key="NEW_KEY"
-   firebase deploy --only functions
-   ```
-4. Rotate any repository secrets referencing the key and update CI secrets.
+1. Revoke the compromised credential at the provider console.
+2. Create a new credential and update the server-side configuration.
+3. Rotate any repository or CI secrets that reference the key.
 
 ## Cost control
 
-- Limit `maxOutputTokens` and `candidateCount` in the frontend or server-side to avoid accidental high-cost requests.
-- Consider request size limits and per-user throttles.
+- Limit request sizes and outputs when calling paid APIs.
+- Consider rate limiting or per-user quotas on server endpoints.

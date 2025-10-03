@@ -1,0 +1,9 @@
+name: Disabled - smoke tests removed
+
+on: [workflow_dispatch]
+
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Smoke tests for Firebase/Gemini have been removed from this repository."
