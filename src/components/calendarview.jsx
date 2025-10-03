@@ -59,6 +59,30 @@ export default function CalendarView({ animate }) {
       return base
     }catch(e){ return { lat:null, lon:null, notify:false, method: 'MuslimWorldLeague', prayerOffsets:{Fajr:0,Dhuhr:0,Asr:0,Maghrib:0,Isha:0}, prayerOverrides:{} } }
   })
+  // load manual override file (public/manual_prayer_times.json) and merge into settings.prayerOverrides
+  useEffect(()=>{
+    (async ()=>{
+      try{
+        const resp = await fetch('/manual_prayer_times.json', { cache: 'no-store' })
+        if(!resp.ok) return
+        const json = await resp.json()
+        const arr = json && Array.isArray(json.overrides) ? json.overrides : []
+        if(arr.length === 0) return
+        const current = (settings && settings.prayerOverrides) ? {...settings.prayerOverrides} : {}
+        arr.forEach(item => {
+          if(!item || !item.date || !item.times) return
+          // convert keys to the capitalized keys used by computePrayerTimesForDate
+          const mapped = {}
+          const mapKey = k => ({fajr:'Fajr', dhuhr:'Dhuhr', asr:'Asr', maghrib:'Maghrib', isha:'Isha'})[k.toLowerCase()] || k
+          Object.keys(item.times).forEach(k=>{ const mk = mapKey(k); mapped[mk] = item.times[k] })
+          current[item.date] = mapped
+        })
+        const ns = { ...(settings||{}), prayerOverrides: current }
+        setSettings(ns)
+        try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch(e){}
+      }catch(e){ /* ignore */ }
+    })()
+  }, [])
   const [overrideText, setOverrideText] = useState('')
   const [localToast, setLocalToast] = useState(null)
 
@@ -433,7 +457,7 @@ export default function CalendarView({ animate }) {
           const marker = `${lat}%2C${lon}`
           const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${marker}`
           return (
-            <div style={{position:'relative', width:220, height:140, cursor:'pointer'}} onClick={()=> window.open(`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=10/${lat}/${lon}`, '_blank')}>
+            <div style={{position:'relative', width:220, height:140, cursor:'pointer'}} onClick={()=> setLocalToast('Map open is disabled in this app — Qibla shown here.') }>
               <iframe title="mini-map" src={mapUrl} style={{border:0, width:'100%', height:'100%', borderRadius:8, filter:'grayscale(20%) contrast(95%) brightness(92%)', opacity:0.98}}></iframe>
               <div style={{position:'absolute', right:8, top:8, display:'flex', flexDirection:'column', alignItems:'center', gap:6}}>
                 <div className="compass" title={`Qibla ${brg}°`} style={{width:48, height:48, borderRadius:24, display:'flex', alignItems:'center', justifyContent:'center', position:'relative'}}>
@@ -513,7 +537,7 @@ export default function CalendarView({ animate }) {
               const val = trans[key]
               return (<span><em style={{color:'#08392d'}}>{val.tr}</em> — {val.en}</span>)
             })()}</div>
-            <div style={{fontSize:13, marginTop:8}}><a href={'https://quran.com/' + (getSurahIndexForDate() + 1)} target="_blank" rel="noreferrer">Open tafsir / full surah</a></div>
+            <div style={{fontSize:13, marginTop:8}}><button onClick={()=> setLocalToast('In-app tafsir viewer not implemented yet.')} style={{background:'transparent', border:'none', color:'#065f67', textDecoration:'underline', cursor:'pointer'}}>Open tafsir / full surah</button></div>
             <div style={{display:'flex', justifyContent:'space-between', marginTop:12, gap:8}}>
               <div>
                 <button onClick={()=>{
@@ -522,7 +546,7 @@ export default function CalendarView({ animate }) {
                 }}>Copy Arabic</button>
                 <button style={{marginLeft:8}} onClick={()=>{
                   const txt = document.querySelector('.day-modal div[style*="direction:rtl"]')?.innerText || ''
-                  try{ window.open('https://www.google.com/search?q=' + encodeURIComponent(txt), '_blank') }catch(e){}
+                  try{ setLocalToast('External search disabled — copied text to clipboard.'); navigator.clipboard?.writeText(txt) }catch(e){}
                 }}>Search</button>
               </div>
               <div style={{textAlign:'right'}}><button onClick={()=>setSurahOpen(false)}>Close</button></div>

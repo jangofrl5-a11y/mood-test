@@ -84,7 +84,7 @@ export function computePrayerTimesForDate(date, settings){
       const params = methodFn()
       params.madhab = (settings.asr === 'Hanafi') ? Madhab.Hanafi : Madhab.Shafi
       // ensure the value passed to PrayerTimes is a real Date
-      const adhanDate = coerceToDate(useDate)
+      const adhanDate = new Date(useDate.getFullYear(), useDate.getMonth(), useDate.getDate())
       if(!isValidDateObj(adhanDate)){
         if(process.env.NODE_ENV !== 'production') console.error('prayerUtils: adhanDate is not a valid Date, skipping adhan', { adhanDate, useDate })
         throw new Error('adhanDate invalid')
