@@ -39,7 +39,7 @@ export async function fetchPrayerTimesForDate(date, settings){
             const age = Date.now() - Number(parsed.ts)
             const ttl = (12*60*60*1000) // 12 hours
             if(age >= 0 && age < ttl){
-              return parsed.data
+              return { data: parsed.data, source: 'cache' }
             }
           }
         }
@@ -63,13 +63,13 @@ export async function fetchPrayerTimesForDate(date, settings){
     const resp = await fetch(url, { method: 'GET' })
     if(!resp || resp.status !== 200) return null
     const j = await resp.json()
-    if(!j || !j.data || !j.data.timings) return null
+  if(!j || !j.data || !j.data.timings) return null
     const t = j.data.timings
     // normalize to HH:MM
     const normalize = s => { if(!s) return null; const m = s.match(/(\d{1,2}:\d{2})/); return m ? m[1] : s }
     const result = { Fajr: normalize(t.Fajr), Dhuhr: normalize(t.Dhuhr), Asr: normalize(t.Asr), Maghrib: normalize(t.Maghrib), Isha: normalize(t.Isha) }
     try{ if(typeof window !== 'undefined' && window.localStorage){ localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: result })) } }catch(_e){ /* ignore cache write errors */ }
-    return result
+    return { data: result, source: 'remote' }
   }catch(e){
     try{ if(process.env.NODE_ENV !== 'production') console.warn('prayerUtils.fetchPrayerTimesForDate failed', e && e.message) }catch{ /* ignore */ }
     return null

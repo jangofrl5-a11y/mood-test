@@ -86,6 +86,7 @@ export default function MainScreenDesign(){
   const [countdown, setCountdown] = useState('00:00:00')
   const [nextPrayerLabel, setNextPrayerLabel] = useState('FAJR')
   const [progress, setProgress] = useState(0)
+  const [timingSource, setTimingSource] = useState('')
 
   // compute next prayer and keep countdown; recompute when the countdown reaches zero
   useEffect(()=>{
@@ -98,8 +99,8 @@ export default function MainScreenDesign(){
         const today = new Date()
         // Try fetching from remote API first
         let times = null
-        try{ times = await fetchPrayerTimesForDate(today, safeSettings) }catch(_e){ times = null }
-        if(!times) times = computePrayerTimesForDate(today, safeSettings) || estimatePrayerTimesForDate(today)
+        try{ const fetched = await fetchPrayerTimesForDate(today, safeSettings); if(fetched && fetched.data){ times = fetched.data; if(fetched.source) setTimingSource(fetched.source) } }catch(_e){ times = null }
+        if(!times){ const computed = computePrayerTimesForDate(today, safeSettings) || estimatePrayerTimesForDate(today); times = computed; setTimingSource(computePrayerTimesForDate(today, safeSettings) ? 'computed' : 'estimator') }
         const order = ['Fajr','Dhuhr','Asr','Maghrib','Isha']
         const now = new Date()
         let nextDate = null
@@ -215,6 +216,12 @@ export default function MainScreenDesign(){
       {/* Main content — ensure it appears above background decorations */}
       <div style={{display:'flex', alignItems:'center', justifyContent:'center', padding:'6px 4px', position:'relative', zIndex:2}}>
         <div style={{textAlign:'center'}}>
+          {/* small timing source badge */}
+          {timingSource ? (
+            <div style={{position:'absolute', right:12, top:8, background:'rgba(0,0,0,0.6)', color:'#fff', padding:'6px 8px', borderRadius:10, fontSize:11, zIndex:5}}>
+              {String(timingSource).toUpperCase()}
+            </div>
+          ) : null}
           {/* Gregorian month pill */}
           <div className="trial-pill" style={{display:'inline-block', background:'#fff3e0', padding:'4px 10px', borderRadius:9999, fontSize:11, color:'#f97316', fontWeight:900, letterSpacing:3, textTransform:'uppercase'}}>{gregMonth}</div>
 
