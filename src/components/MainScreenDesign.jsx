@@ -153,13 +153,13 @@ export default function MainScreenDesign(){
       <div style={{display:'flex', alignItems:'center', justifyContent:'center', padding:'6px 4px'}}>
         <div style={{textAlign:'center'}}>
           {/* Gregorian month pill */}
-          <div style={{display:'inline-block', background:'#fff3e0', padding:'6px 12px', borderRadius:9999, fontSize:12, color:'#f97316', fontWeight:800, letterSpacing:2}}>{gregMonth}</div>
+          <div style={{display:'inline-block', background:'#fff3e0', padding:'4px 10px', borderRadius:9999, fontSize:11, color:'#f97316', fontWeight:900, letterSpacing:3, textTransform:'uppercase'}}>{gregMonth}</div>
 
           {/* Islamic month prominent */}
-          <div style={{fontSize:64, fontWeight:900, color:'#f97316', lineHeight:0.9, marginTop:12, letterSpacing:6, textShadow:'0 6px 20px rgba(249,115,22,0.06)'}}>{islamicMonthToken}</div>
+          <div style={{fontSize:76, fontWeight:900, color:'#f97316', lineHeight:0.88, marginTop:8, letterSpacing:8, textShadow:'0 8px 28px rgba(249,115,22,0.08)'}}>{islamicMonthToken}</div>
 
           {/* Hijri year */}
-          <div style={{fontSize:14, color:'#f59e0b', fontWeight:800, marginTop:8, opacity:0.95}}>{hijriYear}</div>
+          <div style={{fontSize:13, color:'#f59e0b', fontWeight:800, marginTop:6, opacity:0.95, letterSpacing:2}}>{hijriYear}</div>
         </div>
       </div>
 
