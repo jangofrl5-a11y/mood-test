@@ -1,15 +1,42 @@
 import React, { useEffect, useState } from 'react'
 import { computePrayerTimesForDate, estimatePrayerTimesForDate } from '../utils/prayerUtils'
 
-function Circle({ label='FAJR', time='00:15:10' }){
+function Circle({ label='FAJR', time='00:15:10', progress = 0 }){
+  const size = 260
+  const stroke = 14
+  const radius = (size - stroke) / 2
+  const cx = size/2
+  const cy = size/2
+  const circumference = 2 * Math.PI * radius
+  const dashOffset = circumference * (1 - Math.max(0, Math.min(1, progress)))
+
   return (
     <div style={{display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', marginTop:6}}>
-      <div style={{position:'relative', width:260, height:260, display:'flex', alignItems:'center', justifyContent:'center'}}>
-        {/* outer soft rings */}
+      <div style={{position:'relative', width:size, height:size, display:'flex', alignItems:'center', justifyContent:'center'}}>
+        {/* subtle outer glow */}
         <div style={{position:'absolute', width:320, height:320, borderRadius:9999, border:'6px solid rgba(250,204,21,0.06)', filter:'blur(6px)'}} />
-        <div style={{position:'absolute', width:300, height:300, borderRadius:9999, border:'6px solid rgba(250,204,21,0.08)', opacity:0.9}} />
-        <div style={{position:'absolute', width:280, height:280, borderRadius:9999, border:'8px solid rgba(250,190,40,0.14)', boxShadow:'0 26px 48px rgba(250,160,40,0.08)'}} />
-        <div style={{position:'absolute', width:260, height:260, borderRadius:9999, background:'radial-gradient(circle at 30% 30%, #fffef8, #fff2e0)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 28px 60px rgba(249,115,22,0.08)'}}>
+
+        {/* SVG progress ring */}
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{position:'absolute', top:0, left:0}} aria-hidden>
+          <defs>
+            <linearGradient id="prayerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffd27a" />
+              <stop offset="60%" stopColor="#ffb84d" />
+              <stop offset="100%" stopColor="#f97316" />
+            </linearGradient>
+          </defs>
+          {/* background ring */}
+          <circle cx={cx} cy={cy} r={radius} strokeWidth={stroke} stroke="rgba(250,200,80,0.14)" fill="none" />
+          {/* progress arc */}
+          <circle cx={cx} cy={cy} r={radius} strokeWidth={stroke} stroke="url(#prayerGrad)" strokeLinecap="round" fill="none"
+            strokeDasharray={circumference}
+            strokeDashoffset={dashOffset}
+            transform={`rotate(-90 ${cx} ${cy})`}
+            style={{transition: 'stroke-dashoffset 700ms cubic-bezier(.22,.9,.3,1), stroke 300ms'}} />
+        </svg>
+
+        {/* center card */}
+        <div style={{position:'absolute', width:size - 40, height:size - 40, borderRadius:9999, background:'radial-gradient(circle at 30% 30%, #fffef8, #fff2e0)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 28px 60px rgba(249,115,22,0.08)'}}>
           <div style={{textAlign:'center'}}>
             <div style={{fontSize:16, color:'#f59e0b', fontWeight:800, letterSpacing:2}}>{label.toUpperCase()}</div>
             <div style={{fontSize:36, color:'#dd6b20', fontWeight:900, marginTop:8, letterSpacing:1}}>{time}</div>
@@ -58,6 +85,7 @@ function WeeklyGrid(){
 export default function MainScreenDesign(){
   const [countdown, setCountdown] = useState('00:00:00')
   const [nextPrayerLabel, setNextPrayerLabel] = useState('FAJR')
+  const [progress, setProgress] = useState(0)
 
   // compute next prayer and keep countdown; recompute when the countdown reaches zero
   useEffect(()=>{
@@ -67,25 +95,41 @@ export default function MainScreenDesign(){
 
     function computeNextPrayer(){
       try{
-        const times = computePrayerTimesForDate(new Date(), safeSettings) || estimatePrayerTimesForDate(new Date())
+        const today = new Date()
+        const times = computePrayerTimesForDate(today, safeSettings) || estimatePrayerTimesForDate(today)
         const order = ['Fajr','Dhuhr','Asr','Maghrib','Isha']
         const now = new Date()
         let nextDate = null
         let nextLabel = 'Fajr'
+        let lastSeen = null
+        // find next and track last seen (previous) in same pass
         for(const p of order){
           const t = times[p]
           if(!t) continue
           const parts = t.split(':')
           const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), Number(parts[0]), Number(parts[1]) || 0, 0)
-          if(d.getTime() > now.getTime()){ nextDate = d; nextLabel = p; break }
+          if(d.getTime() > now.getTime()){
+            nextDate = d; nextLabel = p; break
+          } else {
+            lastSeen = d
+          }
         }
+        // if no next today, use tomorrow's fajr and compute previous as last seen or yesterday's isha
+        let prevDate = lastSeen
         if(!nextDate){
           const t = times['Fajr'] || '05:00'
           const parts = t.split(':')
           nextDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1, Number(parts[0]), Number(parts[1]) || 0, 0)
           nextLabel = 'Fajr'
+          if(!prevDate){
+            const y = new Date(now.getTime() - 86400000)
+            const yTimes = computePrayerTimesForDate(y, safeSettings) || estimatePrayerTimesForDate(y)
+            const tIsha = yTimes['Isha'] || '19:00'
+            const parts2 = tIsha.split(':')
+            prevDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()-1, Number(parts2[0]), Number(parts2[1]) || 0, 0)
+          }
         }
-        return { nextDate, nextLabel }
+        return { nextDate, nextLabel, prevDate }
       }catch{ return null }
     }
 
@@ -103,6 +147,21 @@ export default function MainScreenDesign(){
       const mm = String(Math.floor((diff%3600)/60)).padStart(2,'0')
       const ss = String(diff%60).padStart(2,'0')
       setCountdown(`${hh}:${mm}:${ss}`)
+
+      // compute progress based on previous->next interval
+      if(state.prevDate && state.nextDate){
+        const total = Math.max(1, Math.floor((state.nextDate.getTime() - state.prevDate.getTime())/1000))
+        const remaining = diff
+        const elapsed = Math.max(0, total - remaining)
+        const pct = Math.max(0, Math.min(1, elapsed / total))
+        setProgress(pct)
+      } else {
+        // fallback: simple inverse of remaining up to 24h
+        const fallTotal = 24*3600
+        const pct = Math.max(0, Math.min(1, (fallTotal - diff) / fallTotal))
+        setProgress(pct)
+      }
+
       // If expired or near expired, recompute immediately and update label/state
       if(diff <= 0){
         const newState = computeNextPrayer()
@@ -165,8 +224,8 @@ export default function MainScreenDesign(){
       </div>
 
       <div style={{display:'flex', alignItems:'center', justifyContent:'center', marginTop:6, zIndex:2, position:'relative'}}>
-        <Circle label={nextPrayerLabel} time={countdown} />
-      </div>
+          <Circle label={nextPrayerLabel} time={countdown} progress={progress} />
+        </div>
 
       <div style={{opacity:0.95, marginTop:14, zIndex:2, position:'relative'}}>
         <Reflections text={'“Be mindful and show gratitude; small moments matter.”'} />
