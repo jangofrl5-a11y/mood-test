@@ -10,12 +10,12 @@ export function ensureDate(input){
     if(input && typeof input === 'object' && input.year && input.month && input.day){
       return new Date(Number(input.year), Number(input.month)-1, Number(input.day))
     }
-  }catch(e){}
+  }catch(_e){ void _e; /* ignore */ }
   return new Date()
 }
 
 export const formatDate = (d) => {
-  try{ const dt = ensureDate(d); return dt.toISOString().split('T')[0] }catch(e){ return new Date().toISOString().split('T')[0] }
+  try{ const dt = ensureDate(d); return dt.toISOString().split('T')[0] }catch(_e){ void _e; return new Date().toISOString().split('T')[0] }
 }
 
 export function parseTimeToDate(baseDate, hhmm){

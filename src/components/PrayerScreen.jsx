@@ -1,11 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react'
-import { ensureDate, formatDate } from '../utils/dateHelpers'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
+import { formatDate } from '../utils/dateHelpers'
 import { computePrayerTimesForDate } from '../utils/prayerUtils'
-
-function fmtTimeStr(t){ if(!t) return ''; return t }
+import PrayerTimeline from './PrayerTimeline'
 
 export default function PrayerScreen({ onDone }){
-  const [now, setNow] = useState(new Date())
+  const [_now, setNow] = useState(new Date())
   const [prayers, setPrayers] = useState([])
   const [index, setIndex] = useState(0)
   const [accepting, setAccepting] = useState(false)
@@ -28,7 +27,7 @@ export default function PrayerScreen({ onDone }){
         return d.getTime() > Date.now()
       })
       setIndex(nextIdx === -1 ? 0 : nextIdx)
-    }catch(e){ console.error(e) }
+  }catch(_e){ console.error('failed to compute prayers', _e); void _e }
   },[])
 
   useEffect(()=>{
@@ -36,8 +35,30 @@ export default function PrayerScreen({ onDone }){
     return ()=> clearInterval(id)
   },[])
 
+  // schedule pre-prayer reminders (10 minutes before) and clean up on unmount
+  useEffect(()=>{
+    const reminders = []
+    try{
+      prayers.forEach(p => {
+        if(!p || !p.time) return
+        const [hh,mm] = p.time.split(':').map(Number)
+        const d = new Date(); d.setHours(hh||0, mm||0,0,0)
+        const when = d.getTime() - (10 * 60 * 1000) // 10 minutes before
+        const nowMs = Date.now()
+        if(when > nowMs){
+          const id = setTimeout(()=>{
+            notify('Upcoming prayer', `${p.label} in 10 minutes — plan to prepare. Try finishing tasks and making wudu.`)
+            // optional local toast (if available in calendarview we used setLocalToast; here we fallback to Notification)
+          }, when - nowMs)
+          reminders.push(id)
+        }
+      })
+    }catch(e){ void e; /* ignore */ }
+    return ()=> reminders.forEach(id=> clearTimeout(id))
+  }, [prayers, notify])
+
   // Notification helper
-  const notify = async (title, body) =>{
+  const notify = useCallback(async (title, body) =>{
     try{
       if(typeof Notification !== 'undefined' && Notification.permission === 'granted'){
         new Notification(title, { body })
@@ -45,11 +66,11 @@ export default function PrayerScreen({ onDone }){
         const p = await Notification.requestPermission()
         if(p === 'granted') new Notification(title, { body })
       }
-    }catch(e){ console.warn('notify failed', e) }
-  }
+    }catch(_e){ console.warn('notify failed', _e); void _e }
+  }, [])
 
   // Accept logic: user has X seconds to accept prayer (default 90s)
-  function startAcceptWindow(timeoutSec = 90){
+  const startAcceptWindow = useCallback((timeoutSec = 90)=>{
     setAccepting(true)
     notify('Prayer due', `It's time for ${prayers[index].label}. Please accept when done.`)
     // start a timer that auto-closes the window (mark missed) after timeout
@@ -58,7 +79,7 @@ export default function PrayerScreen({ onDone }){
       timerRef.current = null
       // track missed: we simply leave it uncounted
     }, timeoutSec*1000)
-  }
+  }, [index, notify, prayers])
 
   function acceptPrayer(){
     try{
@@ -66,11 +87,19 @@ export default function PrayerScreen({ onDone }){
       const key = 'accepted_prayers_' + formatDate(new Date())
       const before = Number(localStorage.getItem(key) || '0')
       localStorage.setItem(key, String(before+1))
+      // record a timestamp for this specific prayer
+      try{
+        const tsKey = 'accepted_prayer_times_' + formatDate(new Date())
+        const raw = localStorage.getItem(tsKey)
+        const obj = raw ? JSON.parse(raw) : {}
+        obj[prayers[index].label] = new Date().toISOString()
+        localStorage.setItem(tsKey, JSON.stringify(obj))
+      }catch(_e){ void _e }
       // clear accept window
       if(timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null }
       setAccepting(false)
       notify('Well done', `Recorded ${prayers[index].label}. Keep it up!`)
-    }catch(e){ console.error(e) }
+  }catch(_e){ console.error('acceptPrayer failed', _e); void _e }
   }
 
   function prev(){ setIndex(i=> Math.max(0, i-1)) }
@@ -87,7 +116,7 @@ export default function PrayerScreen({ onDone }){
       // open accept window automatically
       startAcceptWindow(90)
     }
-  }, [index, prayers])
+  }, [index, prayers, startAcceptWindow])
 
   const acceptedCount = Number(localStorage.getItem('accepted_prayers_' + formatDate(new Date())) || '0')
 
@@ -129,6 +158,34 @@ export default function PrayerScreen({ onDone }){
           </div>
         )}
       </div>
+      <div style={{marginTop:14, display:'flex', justifyContent:'flex-end', gap:8}}>
+        <button className="creative-btn" onClick={()=>{
+          // commit today's accepted count into prayer_history
+          const key = 'accepted_prayers_' + formatDate(new Date())
+          const val = Number(localStorage.getItem(key) || '0')
+          const histRaw = localStorage.getItem('prayer_history')
+          const hist = histRaw ? JSON.parse(histRaw) : {}
+            hist[formatDate(new Date())] = val
+            // also persist per-prayer timestamps if present
+            try{
+              const tsKey = 'accepted_prayer_times_' + formatDate(new Date())
+              const tsRaw = localStorage.getItem(tsKey)
+              if(tsRaw){
+                const per = JSON.parse(tsRaw)
+                const phKey = 'prayer_history_detailed' // optional separate store
+                const phRaw = localStorage.getItem(phKey)
+                const ph = phRaw ? JSON.parse(phRaw) : {}
+                ph[formatDate(new Date())] = per
+                localStorage.setItem(phKey, JSON.stringify(ph))
+              }
+            }catch(_e){ void _e }
+          localStorage.setItem('prayer_history', JSON.stringify(hist))
+          notify('Saved', `Saved today's count: ${val}`)
+        }}>Commit</button>
+        <button className="btn-secondary" onClick={()=>{ if(onDone) onDone() }}>Close</button>
+      </div>
+      {/* timeline below */}
+      <PrayerTimeline prayers={prayers} />
     </div>
   )
 }

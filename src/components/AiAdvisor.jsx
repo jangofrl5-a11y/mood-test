@@ -19,7 +19,7 @@ function fallbackAdvice(prompt){
 }
 
 export default function AiAdvisor({prompt, autoAsk=false, hideInput=false}){
-  const [loading, setLoading] = React.useState(false)
+  const [loading] = React.useState(false)
   const [reply, setReply] = React.useState('')
 
   async function ask(){
