@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { computePrayerTimesForDate, estimatePrayerTimesForDate } from '../utils/prayerUtils'
+import { computePrayerTimesForDate, estimatePrayerTimesForDate, fetchPrayerTimesForDate } from '../utils/prayerUtils'
 
 function Circle({ label='FAJR', time='00:15:10', progress = 0 }){
   const size = 260
@@ -93,10 +93,13 @@ export default function MainScreenDesign(){
     const settings = raw ? JSON.parse(raw) : null
     const safeSettings = Object.assign({ lat:21.4225, lon:39.8262, method:'Makkah', asr:'Shafi' }, settings || {})
 
-    function computeNextPrayer(){
+    async function computeNextPrayer(){
       try{
         const today = new Date()
-        const times = computePrayerTimesForDate(today, safeSettings) || estimatePrayerTimesForDate(today)
+        // Try fetching from remote API first
+        let times = null
+        try{ times = await fetchPrayerTimesForDate(today, safeSettings) }catch(_e){ times = null }
+        if(!times) times = computePrayerTimesForDate(today, safeSettings) || estimatePrayerTimesForDate(today)
         const order = ['Fajr','Dhuhr','Asr','Maghrib','Isha']
         const now = new Date()
         let nextDate = null
@@ -133,9 +136,9 @@ export default function MainScreenDesign(){
       }catch{ return null }
     }
 
-    let state = computeNextPrayer()
-    if(!state) return
-    setNextPrayerLabel(state.nextLabel)
+  // computeNextPrayer may be async now
+  let state = null
+  (async ()=>{ state = await computeNextPrayer(); if(!state) return; setNextPrayerLabel(state.nextLabel) })()
 
     // update function uses a stable state var and ensures immediate recompute when expired
   let _lastComputeTs = Date.now()

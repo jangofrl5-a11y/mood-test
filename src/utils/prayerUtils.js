@@ -20,6 +20,41 @@ export function estimatePrayerTimesForDate(date){
   return { Fajr: toTime(fajr), Dhuhr: toTime(dhuhr), Asr: toTime(asr), Maghrib: toTime(maghrib), Isha: toTime(isha) }
 }
 
+// Fetch prayer times from a public API (AlAdhan). Returns null on failure.
+export async function fetchPrayerTimesForDate(date, settings){
+  try{
+    const d = ensureDate(date)
+    const useDate = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+    const ts = Math.floor(useDate.getTime()/1000)
+    const lat = (settings && settings.lat != null) ? Number(settings.lat) : 21.4225
+    const lon = (settings && settings.lon != null) ? Number(settings.lon) : 39.8262
+    // map common method names to AlAdhan method ids (best-effort)
+    const methodMap = {
+      MuslimWorldLeague: 3,
+      UniversityOfIslamicSciencesKarachi: 1,
+      IslamicSocietyOfNorthAmerica: 2,
+      Egypt: 5,
+      Makkah: 4,
+      Karachi: 1,
+      NorthAmerica: 2,
+      Kuwait: 6
+    }
+    const methodId = (settings && settings.method && methodMap[settings.method]) ? methodMap[settings.method] : 3
+    const url = `https://api.aladhan.com/v1/timings/${ts}?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&method=${encodeURIComponent(methodId)}`
+    const resp = await fetch(url, { method: 'GET' })
+    if(!resp || resp.status !== 200) return null
+    const j = await resp.json()
+    if(!j || !j.data || !j.data.timings) return null
+    const t = j.data.timings
+    // normalize to HH:MM
+    const normalize = s => { if(!s) return null; const m = s.match(/(\d{1,2}:\d{2})/); return m ? m[1] : s }
+    return { Fajr: normalize(t.Fajr), Dhuhr: normalize(t.Dhuhr), Asr: normalize(t.Asr), Maghrib: normalize(t.Maghrib), Isha: normalize(t.Isha) }
+  }catch(e){
+    try{ if(process.env.NODE_ENV !== 'production') console.warn('prayerUtils.fetchPrayerTimesForDate failed', e && e.message) }catch{ /* ignore */ }
+    return null
+  }
+}
+
 function safeSnapshot(d){ try{ return { time: d.getTime(), iso: d.toISOString() } }catch{ return String(d) } }
 
 export function computePrayerTimesForDate(date, settings){
