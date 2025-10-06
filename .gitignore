@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Local env file for Vite - keep local API keys out of source control
+.env.local
+
+ 
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

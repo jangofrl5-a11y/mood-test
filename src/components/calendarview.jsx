@@ -2,8 +2,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { PrayerTimes, CalculationMethod, Coordinates, SunnahTimes, Madhab } from 'adhan'
 import Toast from './Toast'
+import TafsirViewer from './TafsirViewer'
 import { ensureDate, formatDate, parseTimeToDate } from '../utils/dateHelpers'
 import { estimatePrayerTimesForDate, computePrayerTimesForDate } from '../utils/prayerUtils'
+import PrayerProgress from './PrayerProgress'
 
 // Define holiday detection based on Hijri month/day (uses Intl.DateTimeFormat with islamic calendar)
 function getHijriParts(date){
@@ -13,20 +15,20 @@ function getHijriParts(date){
     const month = parts.find(p=>p.type==='month')?.value
     const year = parts.find(p=>p.type==='year')?.value
     return { day: Number(day), month: (month||'').toLowerCase(), year: Number(year) }
-  }catch(e){
-    return null
-  }
+  }catch{ /* ignore */ return null }
 }
 
-function detectHoliday(date){
-  const h = getHijriParts(date)
-  if(!h) return null
-  const { day, month } = h
-  // Only highlight Ramadan (entire month) and the two Eids
-  if(month.includes('ram')) return { id: 'ramadan', label: 'Ramadan', prophetCelebrated: false }
-  if(month.includes('shaw') && day === 1) return { id: 'eid-al-fitr', label: 'Eid al-Fitr', prophetCelebrated: true }
-  if((month.includes('dhu') || month.includes('hij')) && day === 10) return { id: 'eid-al-adha', label: 'Eid al-Adha', prophetCelebrated: true }
-  return null
+function _detectHoliday(date){
+  try{
+    const h = getHijriParts(date)
+    if(!h) return null
+    const { day, month } = h
+    // Only highlight Ramadan (entire month) and the two Eids
+    if(month.includes('ram')) return { id: 'ramadan', label: 'Ramadan', prophetCelebrated: false }
+    if(month.includes('shaw') && day === 1) return { id: 'eid-al-fitr', label: 'Eid al-Fitr', prophetCelebrated: true }
+    if((month.includes('dhu') || month.includes('hij')) && day === 10) return { id: 'eid-al-adha', label: 'Eid al-Adha', prophetCelebrated: true }
+    return null
+  }catch{ /* ignore */ return null }
 }
 
 export default function CalendarView({ animate }) {
@@ -38,17 +40,17 @@ export default function CalendarView({ animate }) {
       const dt = ensureDate(d)
       const dateNum = dt.getDate() // 1..31
       return ((dateNum - 1) % SURAH_LIST.length + SURAH_LIST.length) % SURAH_LIST.length
-    }catch(e){ return 0 }
+    }catch{ /* ignore */ return 0 }
   }
   function getDailySurah(d = new Date()){ return SURAH_LIST[getSurahIndexForDate(d)] }
-  const [date, setDate] = useState(new Date());
-  const [streakCount, setStreakCount] = useState(0);
-  const [entries, setEntries] = useState([])
+  const [date, setDate] = useState(new Date())
+  const [streakCount, setStreakCount] = useState(0)
+  const [_entries, setEntries] = useState([])
   const [openDay, setOpenDay] = useState(null)
   const [dayData, setDayData] = useState({})
   const notifyTimers = useRef({})
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [weekNotes, setWeekNotes] = useState('')
+  const [_weekNotes, setWeekNotes] = useState('')
   const [settings, setSettings] = useState(()=>{
     try{
       const raw = localStorage.getItem('mood_settings')
@@ -56,9 +58,47 @@ export default function CalendarView({ animate }) {
       // ensure prayerOffsets and overrides exist
       base.prayerOffsets = base.prayerOffsets || { Fajr:0, Dhuhr:0, Asr:0, Maghrib:0, Isha:0 }
       base.prayerOverrides = base.prayerOverrides || {}
+      // ensure default coordinates exist so adhan can compute times; fallback to Mecca
+      try{
+        if(base.lat == null || base.lon == null){
+          base.lat = base.lat == null ? 21.3891 : base.lat
+          base.lon = base.lon == null ? 39.8579 : base.lon
+          try{ localStorage.setItem('mood_settings', JSON.stringify(base)) }catch{ /* ignore */ }
+        }
+  }catch{ /* ignore */ }
       return base
-    }catch(e){ return { lat:null, lon:null, notify:false, method: 'MuslimWorldLeague', prayerOffsets:{Fajr:0,Dhuhr:0,Asr:0,Maghrib:0,Isha:0}, prayerOverrides:{} } }
+  }catch{ /* ignore */ return { lat:null, lon:null, notify:false, method: 'MuslimWorldLeague', prayerOffsets:{Fajr:0,Dhuhr:0,Asr:0,Maghrib:0,Isha:0}, prayerOverrides:{} } }
   })
+  // load manual override file (public/manual_prayer_times.json) and merge into settings.prayerOverrides
+  // Intentionally run once on mount. We read `settings` to merge current overrides, but
+  // we don't want this effect to re-run on every `settings` change (would refetch/mutate repeatedly).
+  /* eslint-disable react-hooks/exhaustive-deps -- run-once mount effect that intentionally reads `settings` */
+  useEffect(()=>{
+    (async ()=>{
+      try{
+        const resp = await fetch('/manual_prayer_times.json', { cache: 'no-store' })
+        if(!resp.ok) return
+        const json = await resp.json()
+        const arr = json && Array.isArray(json.overrides) ? json.overrides : []
+        if(arr.length === 0) return
+        const current = {};
+        // read existing settings synchronously to avoid effect dependency on `settings`
+  try{ const raw = localStorage.getItem('mood_settings'); const base = raw ? JSON.parse(raw) : {}; if(base && base.prayerOverrides){ Object.assign(current, base.prayerOverrides) } }catch{ /* ignore */ }
+        arr.forEach(item => {
+          if(!item || !item.date || !item.times) return
+          // convert keys to the capitalized keys used by computePrayerTimesForDate
+          const mapped = {}
+          const mapKey = k => ({fajr:'Fajr', dhuhr:'Dhuhr', asr:'Asr', maghrib:'Maghrib', isha:'Isha'})[k.toLowerCase()] || k
+          Object.keys(item.times).forEach(k=>{ const mk = mapKey(k); mapped[mk] = item.times[k] })
+          current[item.date] = mapped
+        })
+        const ns = { ...(settings||{}), prayerOverrides: current }
+        setSettings(ns)
+  try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch{ /* ignore */ }
+  }catch{ /* ignore */ }
+    })()
+  }, [])
+  /* eslint-enable react-hooks/exhaustive-deps */
   const [overrideText, setOverrideText] = useState('')
   const [localToast, setLocalToast] = useState(null)
 
@@ -85,16 +125,18 @@ export default function CalendarView({ animate }) {
     return R * c
   }
   const [onboardingSeen, setOnboardingSeen] = useState(()=>{
-    try{ return localStorage.getItem('onboarding_seen') === '1' }catch(e){ return false }
+  try{ return localStorage.getItem('onboarding_seen') === '1' }catch{ /* ignore */ return false }
   })
   const [onboardingOpen, setOnboardingOpen] = useState(()=> !onboardingSeen)
   const [selectedPrayer, setSelectedPrayer] = useState(null)
   const [surahOpen, setSurahOpen] = useState(false)
+  const [surahTafsir, setSurahTafsir] = useState(null)
+  const [surahForViewer, setSurahForViewer] = useState(null)
   const containerRef = useRef(null)
   const topAreaRef = useRef(null)
   const monthGridRef = useRef(null)
   const [hideTop, setHideTop] = useState(false)
-  const [userHideTop, setUserHideTop] = useState(()=> localStorage.getItem('hide_header') === '1')
+  const [userHideTop, _setUserHideTop] = useState(()=> localStorage.getItem('hide_header') === '1')
 
   // respect a user-set reduced motion preference stored in localStorage
   useEffect(()=>{
@@ -102,10 +144,13 @@ export default function CalendarView({ animate }) {
       const reduced = localStorage.getItem('reduced_motion') === '1'
       if(reduced) document.documentElement.classList.add('reduced-motion')
       else document.documentElement.classList.remove('reduced-motion')
-    }catch(e){}
+  }catch{ /* ignore */ }
   },[])
 
   // try to get device location only after user accepts onboarding; otherwise wait
+  // This effect intentionally runs once on mount; it reads `settings` to avoid re-requesting
+  // geolocation if coordinates already exist. Do not add `settings` to deps to avoid loops.
+  /* eslint-disable react-hooks/exhaustive-deps -- run-once mount effect that intentionally reads `settings` */
   useEffect(()=>{
     try{
       const allowed = localStorage.getItem('onboard_allow') === 'true'
@@ -118,13 +163,14 @@ export default function CalendarView({ animate }) {
           const lon = pos.coords.longitude
           const ns = {...(settings||{}), lat, lon}
           setSettings(ns)
-          try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch(e){}
+          try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch{ /* ignore */ }
         }, (err)=>{
           // fallback to Mecca coordinates if user denies or error
+          void err
           if(!(settings && settings.lat != null && settings.lon != null)){
             const ns = {...(settings||{}), lat:21.3891, lon:39.8579}
             setSettings(ns)
-            try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch(e){}
+            try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch{ /* ignore */ }
           }
         }, { timeout: 4000 })
       }else{
@@ -132,13 +178,12 @@ export default function CalendarView({ animate }) {
         if(!(settings && settings.lat != null && settings.lon != null)){
           const ns = {...(settings||{}), lat:21.3891, lon:39.8579}
           setSettings(ns)
-          try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch(e){}
+          try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch{ /* ignore */ }
         }
       }
-    }catch(e){
-      // silent fallback
-    }
+  }catch{ /* ignore */ /* silent fallback */ }
   }, [])
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   // helper: create a GMT offset label like "GMT+3" or "GMT+3:30" for a given date
   function getGMTOffsetLabel(dt){
@@ -151,7 +196,7 @@ export default function CalendarView({ animate }) {
       const hh = Math.floor(abs/60)
       const mm = abs % 60
       return `GMT${sign}${hh}${mm? ':' + String(mm).padStart(2,'0') : ''}`
-    }catch(e){ return '' }
+  }catch{ /* ignore */ return '' }
   }
 
   // Delegate estimate to shared util (keeps local file small and testable)
@@ -161,7 +206,7 @@ export default function CalendarView({ animate }) {
 
   // Delegate compute to shared util which handles adhan and fallbacks
   function computePrayerTimes(date){
-    return computePrayerTimesForDate(new Date(date), settings)
+  return computePrayerTimesForDate(new Date(date), settings);
   }
 
   useEffect(()=>{
@@ -179,10 +224,14 @@ export default function CalendarView({ animate }) {
         else break
       }
       setStreakCount(streak)
-    }catch(e){
-      console.error(e)
-    }
+  }catch(e){ console.error(e) }
   },[])
+
+  // open tafsir viewer
+  function _openTafsir(surah){
+    setSurahForViewer(surah);
+    setSurahOpen(true)
+  }
 
   // clear scheduled timers on unmount
   useEffect(()=>{
@@ -258,7 +307,7 @@ export default function CalendarView({ animate }) {
         delete notifyTimers.current[key]
       }, ms)
       notifyTimers.current[key] = id
-    }catch(e){ console.error('scheduleNotifyForDate', e) }
+    }catch(e){ console.error('scheduleNotifyForDate failed', e); void e }
   }
 
   function clearNotifyForDate(d){
@@ -296,7 +345,7 @@ export default function CalendarView({ animate }) {
       const key = 'week_notes_' + formatDate(weekDates(date)[0])
       const v = localStorage.getItem(key) || ''
       setWeekNotes(v)
-    }catch(e){}
+  }catch{ /* ignore */ }
   },[date])
 
   // Fit month grid into a 1080px viewport: compute available height and set tile sizes
@@ -317,7 +366,7 @@ export default function CalendarView({ animate }) {
         }
         // hide top elements if grid alone is too tall
         setHideTop((topH + headerH + 6) > (vh * 0.28))
-      }catch(e){/* ignore */}
+  }catch{ /* ignore */ }
     }
     applySizing()
     window.addEventListener('resize', applySizing)
@@ -325,7 +374,7 @@ export default function CalendarView({ animate }) {
   },[date, settings])
 
   useEffect(()=>{
-    try{ if(userHideTop) setHideTop(true); }catch(e){}
+    try{ if(userHideTop) setHideTop(true); }catch(e){ void e }
   },[userHideTop])
 
   // Dev debug: log date used when computing prayer times
@@ -333,7 +382,7 @@ export default function CalendarView({ animate }) {
     try{
       // only in development to avoid noisy logs in production
       if(process.env.NODE_ENV !== 'production') console.log('Computing prayer times for:', date)
-    }catch(e){}
+    }catch(e){ void e }
   },[date])
 
   // helper: compute next prayer (label + time) for now
@@ -349,7 +398,7 @@ export default function CalendarView({ animate }) {
       const tomorrow = new Date(now); tomorrow.setDate(now.getDate()+1)
       const tomTimes = computePrayerTimes(new Date(tomorrow))
       return {label:'Fajr', time: tomTimes.Fajr}
-    }catch(e){ return null }
+  }catch{ return null }
   }
 
   return (
@@ -376,22 +425,22 @@ export default function CalendarView({ animate }) {
                 setOnboardingOpen(false)
                 setOnboardingSeen(true)
                 // trigger immediate location attempt
-                if(typeof navigator !== 'undefined' && navigator.geolocation){
+            if(typeof navigator !== 'undefined' && navigator.geolocation){
                   navigator.geolocation.getCurrentPosition((pos)=>{
                     const lat = pos.coords.latitude
                     const lon = pos.coords.longitude
                     const ns = {...(settings||{}), lat, lon}
                     setSettings(ns)
-                    try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch(e){}
+                    try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch(e){ void e }
                     setLocalToast('Location allowed — prayer times updated')
-                  }, (err)=>{ setLocalToast('Location denied or unavailable') }, { timeout: 5000 })
+                  }, (err)=>{ void err; setLocalToast('Location denied or unavailable') }, { timeout: 5000 })
                 }
               }} className="creative-btn">Allow location</button>
               <button onClick={()=>{
                 // use default
                 const ns = {...(settings||{}), lat:21.3891, lon:39.8579}
                 setSettings(ns)
-                try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch(e){}
+                try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch(e){ void e }
                 localStorage.setItem('onboarding_seen','1')
                 setOnboardingOpen(false)
                 setOnboardingSeen(true)
@@ -410,7 +459,7 @@ export default function CalendarView({ animate }) {
                     const lon = pos.coords.longitude
                     const ns = {...(settings||{}), lat, lon}
                     setSettings(ns)
-                    try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch(e){}
+                    try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch(e){ void e }
                     setLocalToast('Always allowed — prayer times updated')
                   }, ()=>{}, { timeout: 5000 })
                 }
@@ -418,6 +467,9 @@ export default function CalendarView({ animate }) {
             </div>
           </div>
         </div>
+      )}
+      {surahOpen && (
+        <TafsirViewer surahName={surahForViewer || getDailySurah(date)} onClose={()=>{ setSurahOpen(false); setSurahForViewer(null) }} />
       )}
       {/* local toast for this view */}
       {localToast && <Toast message={localToast} onClose={()=>setLocalToast(null)} />}
@@ -433,7 +485,7 @@ export default function CalendarView({ animate }) {
           const marker = `${lat}%2C${lon}`
           const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${marker}`
           return (
-            <div style={{position:'relative', width:220, height:140, cursor:'pointer'}} onClick={()=> window.open(`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=10/${lat}/${lon}`, '_blank')}>
+            <div style={{position:'relative', width:220, height:140, cursor:'pointer'}} onClick={()=> setLocalToast('Map open is disabled in this app — Qibla shown here.') }>
               <iframe title="mini-map" src={mapUrl} style={{border:0, width:'100%', height:'100%', borderRadius:8, filter:'grayscale(20%) contrast(95%) brightness(92%)', opacity:0.98}}></iframe>
               <div style={{position:'absolute', right:8, top:8, display:'flex', flexDirection:'column', alignItems:'center', gap:6}}>
                 <div className="compass" title={`Qibla ${brg}°`} style={{width:48, height:48, borderRadius:24, display:'flex', alignItems:'center', justifyContent:'center', position:'relative'}}>
@@ -448,8 +500,8 @@ export default function CalendarView({ animate }) {
             </div>
           )
         })()}
-      </div>
-      {/* Top prayer circles + daily surah */}
+    </div>
+    {/* Top prayer circles + daily surah */}
   <div ref={topAreaRef} style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:20, marginBottom:12}}>
         <div style={{flex:1}}>
           <div className="prayer-circles" style={{display:'flex', gap:8, alignItems:'center'}}>
@@ -478,6 +530,9 @@ export default function CalendarView({ animate }) {
             <div style={{fontSize:14, color:'#065f67', cursor:'pointer'}} onClick={()=>setSurahOpen(true)}>{getDailySurah()}</div>
             <div style={{fontSize:12, color:'#0b5138', marginTop:8}}>Reflect on a short verse today — tap to read more.</div>
           </div>
+        </div>
+        <div style={{width:260, display:'flex', alignItems:'center', justifyContent:'center'}}>
+          <PrayerProgress days={7} />
         </div>
       </div>
       {/* Surah modal */}
@@ -513,16 +568,32 @@ export default function CalendarView({ animate }) {
               const val = trans[key]
               return (<span><em style={{color:'#08392d'}}>{val.tr}</em> — {val.en}</span>)
             })()}</div>
-            <div style={{fontSize:13, marginTop:8}}><a href={'https://quran.com/' + (getSurahIndexForDate() + 1)} target="_blank" rel="noreferrer">Open tafsir / full surah</a></div>
+            {surahTafsir && (
+              <div style={{marginTop:12, padding:12, background:'#fff', borderRadius:8, color:'#08392d'}}>
+                <div style={{fontWeight:800, marginBottom:6}}>Tafsir (excerpt)</div>
+                <div>{surahTafsir}</div>
+              </div>
+            )}
+            <div style={{fontSize:13, marginTop:8}}>
+              <button onClick={async ()=>{
+                try{
+                  const idx = getSurahIndexForDate() + 1
+                  const resp = await fetch('/tafsir.json', { cache: 'no-store' })
+                  const j = await resp.json()
+                  setSurahTafsir(j.surahs && j.surahs[String(idx)] ? j.surahs[String(idx)].tafsir : 'Tafsir not available')
+                  setSurahOpen(true)
+                }catch(e){ void e; setLocalToast('Tafsir load failed') }
+              }} style={{background:'transparent', border:'none', color:'#065f67', textDecoration:'underline', cursor:'pointer'}}>Open tafsir / full surah</button>
+            </div>
             <div style={{display:'flex', justifyContent:'space-between', marginTop:12, gap:8}}>
               <div>
                 <button onClick={()=>{
                   const txt = document.querySelector('.day-modal div[style*="direction:rtl"]')?.innerText || ''
-                  try{ navigator.clipboard.writeText(txt); setLocalToast('Arabic excerpt copied to clipboard') }catch(e){ setLocalToast('Copy failed') }
+                  try{ navigator.clipboard.writeText(txt); setLocalToast('Arabic excerpt copied to clipboard') }catch(e){ void e; setLocalToast('Copy failed') }
                 }}>Copy Arabic</button>
                 <button style={{marginLeft:8}} onClick={()=>{
                   const txt = document.querySelector('.day-modal div[style*="direction:rtl"]')?.innerText || ''
-                  try{ window.open('https://www.google.com/search?q=' + encodeURIComponent(txt), '_blank') }catch(e){}
+                  try{ setLocalToast('External search disabled — copied text to clipboard.'); navigator.clipboard?.writeText(txt) }catch(e){ void e }
                 }}>Search</button>
               </div>
               <div style={{textAlign:'right'}}><button onClick={()=>setSurahOpen(false)}>Close</button></div>
@@ -549,15 +620,15 @@ export default function CalendarView({ animate }) {
                     const lon = pos.coords.longitude
                     const ns = {...(settings||{}), lat, lon}
                     setSettings(ns)
-                    try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch(e){}
+                    try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch(e){ void e }
                     alert('Location allowed — prayer times updated')
-                  }, (err)=>{ alert('Location denied or unavailable') }, { timeout: 5000 })
+                  }, (err)=>{ void err; alert('Location denied or unavailable') }, { timeout: 5000 })
                 } else setLocalToast('Geolocation not available')
               }}>Allow location</button>
               <button className="btn-creative" onClick={()=>{
                 const ns = {...(settings||{}), lat:21.3891, lon:39.8579}
                 setSettings(ns)
-                try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch(e){}
+                try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch(e){ void e }
                 setLocalToast('Using default location (Mecca)')
               }}>Use default</button>
             </div>
@@ -646,6 +717,18 @@ export default function CalendarView({ animate }) {
         <div className="day-modal-overlay" onClick={()=>setOpenDay(null)}>
           <div className="day-modal" onClick={e=>e.stopPropagation()}>
             <h3 style={{marginTop:0}}>Details for {formatDate(openDay)}</h3>
+            {/* show any saved ayah/dua from journal entries on this date */}
+            {(() => {
+              try{
+                const raw = localStorage.getItem('mood_entries')
+                const arr = raw ? JSON.parse(raw) : []
+                const found = arr.find(en => en && en.createdAt && formatDate(new Date(en.createdAt)) === formatDate(openDay))
+                if(found && found.dua){
+                  return (<div style={{marginBottom:10, padding:10, borderRadius:8, background:'#fff3e0', color:'#92400e'}}><strong>Selected Ayah/Dua:</strong> {found.dua}</div>)
+                }
+              }catch(e){ void e }
+              return null
+            })()}
             <div style={{display:'flex', gap:12}}>
                     <div style={{flex:1}}>
                       <h4 style={{display:'flex', alignItems:'center', gap:8}}>Prayer times</h4>
@@ -725,7 +808,7 @@ export default function CalendarView({ animate }) {
               </div>
               <div style={{display:'flex', alignItems:'center', gap:8}}>
                 <input id="reducedMotionToggle" type="checkbox" defaultChecked={localStorage.getItem('reduced_motion') === '1'} onChange={e=>{
-                  try{ localStorage.setItem('reduced_motion', e.target.checked ? '1' : '0') }catch(err){}
+              try{ localStorage.setItem('reduced_motion', e.target.checked ? '1' : '0') }catch(err){ void err }
                   if(e.target.checked) document.documentElement.classList.add('reduced-motion')
                   else document.documentElement.classList.remove('reduced-motion')
                 }} />
@@ -733,7 +816,7 @@ export default function CalendarView({ animate }) {
               </div>
               <div style={{display:'flex', alignItems:'center', gap:8}}>
                 <input id="headerAnimateToggle" type="checkbox" checked={localStorage.getItem('header_animate') !== '0'} onChange={e=>{
-                  try{ localStorage.setItem('header_animate', e.target.checked ? '1' : '0') }catch(err){}
+                  try{ localStorage.setItem('header_animate', e.target.checked ? '1' : '0') }catch(err){ void err }
                   if(!e.target.checked) document.documentElement.classList.add('no-header-anim')
                   else document.documentElement.classList.remove('no-header-anim')
                 }} />
@@ -752,9 +835,9 @@ export default function CalendarView({ animate }) {
                       const lon = pos.coords.longitude
                       const ns = {...(settings||{}), lat, lon}
                       setSettings(ns)
-                      try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch(e){}
+                      try{ localStorage.setItem('mood_settings', JSON.stringify(ns)) }catch(e){ void e }
                       setLocalToast('Location updated')
-                    }, (err)=>{ setLocalToast('Unable to get location: ' + (err && err.message || 'denied')) }, { timeout: 5000 })
+                    }, (err)=>{ void err; setLocalToast('Unable to get location: ' + (err && err.message || 'denied')) }, { timeout: 5000 })
                   } else { setLocalToast('Geolocation not available in this browser') }
                 }}>Re-check device location</button>
                 <button onClick={() => {
@@ -767,17 +850,17 @@ export default function CalendarView({ animate }) {
                         try{
                           const v = JSON.parse(localStorage.getItem(k))
                           if(v && v.prayers && Object.keys(v.prayers).length){
-                            archived[k] = v.prayers
-                            // remove prayers from day_data but keep tasks/flags
-                            const cleaned = {...v}; delete cleaned.prayers
-                            localStorage.setItem(k, JSON.stringify(cleaned))
-                          }
-                        }catch(e){}
+                              archived[k] = v.prayers
+                              // remove prayers from day_data but keep tasks/flags
+                              const cleaned = {...v}; delete cleaned.prayers
+                              localStorage.setItem(k, JSON.stringify(cleaned))
+                            }
+                          }catch(e){ void e }
                       }
                     })
                     localStorage.setItem('archived_prayers', JSON.stringify(archived))
                     setLocalToast('Migration complete. Archived prayers saved.')
-                  }catch(e){ setLocalToast('Migration failed: ' + e.message) }
+                      }catch(e){ setLocalToast('Migration failed: ' + e.message); void e }
                 }}>Migrate custom prayer times to archive</button>
               </div>
               {/* archived prayers UI */}
@@ -792,7 +875,7 @@ export default function CalendarView({ animate }) {
                       let out = ''
                       keys.slice(0,10).forEach(k=>{ out += k + '\n' + JSON.stringify(a[k]) + '\n\n' })
                       setLocalToast(out)
-                    }catch(e){ setLocalToast('Failed to read archive') }
+              }catch(e){ void e; setLocalToast('Failed to read archive') }
                   }}>View archive (first 10)</button>
                   <button onClick={()=>{ if(confirm('Clear archived prayers?')){ localStorage.removeItem('archived_prayers'); setLocalToast('Cleared') } }}>Clear archive</button>
                 </div>
@@ -829,7 +912,7 @@ export default function CalendarView({ animate }) {
             <div style={{textAlign:'right', marginTop:12}}>
               <button onClick={()=>{ setSettingsOpen(false) }}>Cancel</button>
               <button onClick={()=>{
-                try{ localStorage.setItem('mood_settings', JSON.stringify(settings)) }catch(e){}
+                      try{ localStorage.setItem('mood_settings', JSON.stringify(settings)) }catch(e){ void e }
                 // when enabling notify, schedule for current week days that have notify true in their data
                 if(settings.notify){
                   weekDates(date).forEach(d=> scheduleNotifyForDate(d))

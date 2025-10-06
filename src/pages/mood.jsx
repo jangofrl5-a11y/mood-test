@@ -1,6 +1,6 @@
 import React from 'react'
 import { FaCalendarAlt, FaLeaf } from 'react-icons/fa'
-import AiAdvisor from '../components/AiAdvisor'
+// AiAdvisor removed per UX request; kept as fallback component in repo if needed
 
 const containerStyle = {
   maxWidth: 920,
@@ -43,11 +43,7 @@ const moodSelected = {
 }
 
 // hover/focus interaction styles (applied inline where possible)
-const moodHover = {
-  // playful lift: small upward translate and gentle scale
-  transform: 'translateY(-6px) scale(1.02)',
-  boxShadow: '0 14px 36px rgba(3,106,115,0.14)'
-}
+// moodHover intentionally removed to avoid unused variable warnings
 
 const focusStyle = {
   outline: '3px solid rgba(3,106,115,0.12)',
@@ -66,40 +62,49 @@ const focusStyle = {
   fontSize: 16
 }
 
-export default function Mood({onSave, onOpenCalendar, hasSaved}){
+export default function Mood({onSave, onOpenCalendar, minimal = false}){
   const [mood, setMood] = React.useState('Grateful')
   const [text, setText] = React.useState('')
-  const [dua, setDua] = React.useState('Ayah: 94:6')
+  const [dua, _setDua] = React.useState('Ayah: 94:6')
   const journalRef = React.useRef(null)
+  const [saving, setSaving] = React.useState(false)
 
   function save(){
-    const entry = { id: Date.now(), mood, text, dua, createdAt: new Date().toISOString() }
+    if(saving) return
+    setSaving(true)
+    const entry = { id: Date.now(), mood, text: minimal ? '' : text, dua, createdAt: new Date().toISOString() }
     try{
       const raw = localStorage.getItem('mood_entries')
       const arr = raw ? JSON.parse(raw) : []
       arr.unshift(entry)
       localStorage.setItem('mood_entries', JSON.stringify(arr))
-    }catch(e){
-      console.error('save error', e)
+    }catch(err){
+      void err
+      console.error('save error', err)
     }
+    // Only way to dismiss the modal is via onSave from App — so call it and let the parent close.
     if(onSave) onSave(entry)
+    // small safety: ensure saving state resets if parent doesn't navigate away immediately
+    setTimeout(()=> setSaving(false), 800)
   }
 
   return (
-    <div style={containerStyle} className="enter-animate">
-      <div style={{marginBottom:18, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-        <div>
-          <div style={{fontSize:28, fontWeight:800, letterSpacing: '-0.02em', color:'#114B2B'}}>🌙 Islamic Mood Journal</div>
-          <div style={{color:'#3f6b58', marginTop:6, fontStyle:'italic'}}>“Indeed, with hardship comes ease.” (94:6)</div>
+    <div style={{...containerStyle, maxWidth: minimal ? 520 : containerStyle.maxWidth}} className="enter-animate">
+      {!minimal && (
+        <div style={{marginBottom:18, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+          <div>
+            <div style={{fontSize:28, fontWeight:800, letterSpacing: '-0.02em', color:'#114B2B'}}>🌙 Islamic Mood Journal</div>
+            <div style={{color:'#3f6b58', marginTop:6, fontStyle:'italic'}}>“Indeed, with hardship comes ease.” (94:6)</div>
+          </div>
+          <div style={{display:'flex', gap:10}}>
+            <button data-app-calendar aria-label="calendar" onClick={() => onOpenCalendar && onOpenCalendar()} style={{...moodButton, padding:10, borderRadius:10}}><FaCalendarAlt/></button>
+            <button aria-label="nature" style={{...moodButton, padding:10, borderRadius:10}}><FaLeaf/></button>
+          </div>
         </div>
-        <div style={{display:'flex', gap:10}}>
-          <button data-app-calendar aria-label="calendar" onClick={() => onOpenCalendar && onOpenCalendar()} style={{...moodButton, padding:10, borderRadius:10}}><FaCalendarAlt/></button>
-          <button aria-label="nature" style={{...moodButton, padding:10, borderRadius:10}}><FaLeaf/></button>
-        </div>
-      </div>
+      )}
 
       <div style={cardStyle}>
-  <div style={{fontWeight:800, marginBottom:14, fontSize:18, color:'#114B2B'}}>How are you feeling today?</div>
+        <div style={{fontWeight:800, marginBottom:14, fontSize:18, color:'#114B2B'}}>How are you feeling today?</div>
         <div style={{display:'flex', gap:14, marginBottom:20}}>
           {['Peaceful','Sad','Frustrated','Grateful'].map((m, idx)=> {
             const is = m === mood
@@ -114,7 +119,6 @@ export default function Mood({onSave, onOpenCalendar, hasSaved}){
                 style={{
                   ...moodButton,
                   ...(is? moodSelected : {}),
-                  // add an explicit animationDelay for stagger (CSS animation)
                   animationDelay: `${idx * 90}ms`,
                   padding: '12px 16px',
                   minWidth:120,
@@ -132,86 +136,48 @@ export default function Mood({onSave, onOpenCalendar, hasSaved}){
           })}
         </div>
 
-        <div className="spiritual-prompt-wrap" style={{marginBottom:18}}>
-          <div style={{background:'linear-gradient(90deg,#fdfef6,#f6fff6)', padding:14, borderRadius:10, border:'1px solid rgba(17,75,43,0.06)'}} className="spiritual-prompt prompt-animate">
-            <div style={{fontWeight:800, color:'#114B2B'}}>✨ Spiritual Prompt</div>
-            <div style={{color:'#3f6b58'}}>Take a quiet moment to breathe and remember His mercy.</div>
+        {!minimal && (
+          <div className="spiritual-prompt-wrap" style={{marginBottom:18}}>
+            <div style={{background:'linear-gradient(90deg,#fdfef6,#f6fff6)', padding:14, borderRadius:10, border:'1px solid rgba(17,75,43,0.06)'}} className="spiritual-prompt prompt-animate">
+              <div style={{fontWeight:800, color:'#114B2B'}}>✨ Spiritual Prompt</div>
+              <div style={{color:'#3f6b58'}}>Take a quiet moment to breathe and remember His mercy.</div>
+            </div>
           </div>
-        </div>
+        )}
 
-        <label htmlFor="journalEntry" style={{fontWeight:800, marginBottom:8, color:'#114B2B'}}>
-          📝 Journal Entry
-        </label>
-        <textarea
-          id="journalEntry"
-          name="journalEntry"
-          ref={journalRef}
-          value={text}
-          onChange={e => setText(e.target.value)}
-          placeholder="Write your thoughts here..."
-          style={{
-            width: '100%',
-            minHeight: 160,
-            padding: 14,
-            borderRadius: 12,
-            border: '1px solid rgba(2,6,23,0.05)',
-            boxShadow: 'inset 0 2px 6px rgba(2,6,23,0.02)'
-          }}
-        />
-
-        <AiAdvisor prompt={text} />
-
-        <label htmlFor="duaSelection" style={{fontWeight:700, marginTop:12, marginBottom:8, color:'#114B2B'}}>
-          📿 Add a Dua or Ayah (optional)
-        </label>
-        <div style={{display:'flex', gap:12, marginBottom:20}}>
-          <select
-            id="duaSelection"
-            name="duaSelection"
-            value={dua}
-            onChange={e => setDua(e.target.value)}
-            style={{
-              flex: 1,
-              padding: 12,
-              borderRadius: 10,
-              border: '1px solid rgba(2,6,23,0.05)'
-            }}
-          >
-            <option>Ayah: 94:6</option>
-            <option>Dua: Seeking Forgiveness</option>
-          </select>
-          <button
-            style={{...moodButton, padding:'10px 14px', borderRadius:10, background:'#f8fafc'}}
-            onClick={() => {
-              try{
-                const insert = dua || ''
-                setText(prev => {
-                  const sep = prev && prev.trim() ? '\n\n' : ''
-                  return prev + sep + insert
-                })
-                // focus the textarea after inserting
-                setTimeout(() => {
-                  if(journalRef.current) {
-                    journalRef.current.focus()
-                    // move cursor to end
-                    const len = journalRef.current.value.length
-                    journalRef.current.setSelectionRange(len, len)
-                  }
-                }, 20)
-              }catch(e){ console.error('attach dua failed', e) }
-            }}
-          >Attach</button>
-        </div>
+        {!minimal && (
+          <>
+            <label htmlFor="journalEntry" style={{fontWeight:800, marginBottom:8, color:'#114B2B'}}>
+              📝 Journal Entry
+            </label>
+            <textarea
+              id="journalEntry"
+              name="journalEntry"
+              ref={journalRef}
+              value={text}
+              onChange={e => setText(e.target.value)}
+              placeholder="Write your thoughts here..."
+              style={{
+                width: '100%',
+                minHeight: 160,
+                padding: 14,
+                borderRadius: 12,
+                border: '1px solid rgba(2,6,23,0.05)',
+                boxShadow: 'inset 0 2px 6px rgba(2,6,23,0.02)'
+              }}
+            />
+          </>
+        )}
 
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-          <div style={{color:'#9ca3af'}}>Saved locally · Private</div>
+          <div style={{color:'#9ca3af'}}>{minimal ? 'Saved locally · Private' : 'Saved locally · Private'}</div>
           <div style={{display:'flex', gap:12}}>
-            <button onClick={() => { save(); if(onSave) onSave(); }} style={{padding:'10px 18px', borderRadius:12, background:'linear-gradient(90deg,#06b6d4,#0891b2)', color:'#114B2B', border:'none', boxShadow:'0 8px 18px rgba(3,106,115,0.12)'}}>Save Entry</button>
-            <button onClick={()=>{
+            <button onClick={() => save()} style={{padding:'10px 18px', borderRadius:12, background:'linear-gradient(90deg,#06b6d4,#0891b2)', color:'#114B2B', border:'none', boxShadow:'0 8px 18px rgba(3,106,115,0.12)'}}>{saving ? 'Saving…' : (minimal ? 'Save' : 'Save Entry')}</button>
+            {!minimal && <button onClick={()=>{
               const when = Date.now() + 10*60*1000; // 10 minutes
               localStorage.setItem('mood_remind_at', String(when))
               alert('We will remind you in 10 minutes')
-            }} style={{padding:'10px 12px', borderRadius:12, background:'linear-gradient(90deg,#f59e0b,#fb923c)', color:'#114B2B', border:'none'}}>Remind me later</button>
+            }} style={{padding:'10px 12px', borderRadius:12, background:'linear-gradient(90deg,#f59e0b,#fb923c)', color:'#114B2B', border:'none'}}>Remind me later</button>}
           </div>
         </div>
       </div>
