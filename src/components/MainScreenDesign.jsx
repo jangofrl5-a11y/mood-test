@@ -138,8 +138,8 @@ export default function MainScreenDesign(){
       {/* soft layered background shapes */}
       <div aria-hidden style={{position:'absolute', inset:0, pointerEvents:'none', zIndex:0}}>
         <div style={{position:'absolute', left:-120, top:40, width:360, height:360, borderRadius:9999, background:'radial-gradient(circle at 30% 30%, rgba(255,244,214,0.9), rgba(255,244,214,0.35))'}} />
-        <div style={{position:'absolute', right:-80, top:-40, width:420, height:420, borderRadius:9999, background:'radial-gradient(circle at 70% 20%, rgba(255,249,230,0.9), rgba(255,249,230,0.22))'}} />
-        <div style={{position:'absolute', left:10, bottom:-120, width:520, height:520, borderRadius:9999, background:'radial-gradient(circle at 20% 80%, rgba(255,244,200,0.85), rgba(255,244,200,0.18))'}} />
+        <div style={{position:'absolute', right:-80, top:-40, width:420, height:420, borderRadius:9999, background:'radial-gradient(circle at 70% 20%, rgba(255,249,230,0.8), rgba(255,249,230,0.18))'}} />
+        <div style={{position:'absolute', left:10, bottom:-120, width:520, height:520, borderRadius:9999, background:'radial-gradient(circle at 20% 80%, rgba(255,244,200,0.78), rgba(255,244,200,0.16))'}} />
         <svg style={{position:'absolute', left:0, right:0, top:0, bottom:0, width:'100%', height:'100%'}} xmlns="http://www.w3.org/2000/svg">
           <defs>
             <radialGradient id="g1" cx="50%" cy="50%" r="50%">
@@ -150,7 +150,8 @@ export default function MainScreenDesign(){
           <rect x="0" y="0" width="100%" height="100%" fill="url(#g1)" />
         </svg>
       </div>
-      <div style={{display:'flex', alignItems:'center', justifyContent:'center', padding:'6px 4px'}}>
+      {/* Main content — ensure it appears above background decorations */}
+      <div style={{display:'flex', alignItems:'center', justifyContent:'center', padding:'6px 4px', position:'relative', zIndex:2}}>
         <div style={{textAlign:'center'}}>
           {/* Gregorian month pill */}
           <div className="trial-pill" style={{display:'inline-block', background:'#fff3e0', padding:'4px 10px', borderRadius:9999, fontSize:11, color:'#f97316', fontWeight:900, letterSpacing:3, textTransform:'uppercase'}}>{gregMonth}</div>
@@ -163,15 +164,15 @@ export default function MainScreenDesign(){
         </div>
       </div>
 
-      <div style={{display:'flex', alignItems:'center', justifyContent:'center', marginTop:6, zIndex:1}}>
+      <div style={{display:'flex', alignItems:'center', justifyContent:'center', marginTop:6, zIndex:2, position:'relative'}}>
         <Circle label={nextPrayerLabel} time={countdown} />
       </div>
 
-      <div style={{opacity:0.95, marginTop:14, zIndex:1}}>
+      <div style={{opacity:0.95, marginTop:14, zIndex:2, position:'relative'}}>
         <Reflections text={'“Be mindful and show gratitude; small moments matter.”'} />
       </div>
 
-      <div style={{marginTop:14, zIndex:1}}>
+      <div style={{marginTop:14, zIndex:2, position:'relative'}}>
         <WeeklyGrid />
       </div>
     </div>
