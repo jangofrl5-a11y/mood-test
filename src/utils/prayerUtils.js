@@ -25,9 +25,28 @@ export async function fetchPrayerTimesForDate(date, settings){
   try{
     const d = ensureDate(date)
     const useDate = new Date(d.getFullYear(), d.getMonth(), d.getDate())
-    const ts = Math.floor(useDate.getTime()/1000)
+    // simple cache key: date|lat|lon|method
     const lat = (settings && settings.lat != null) ? Number(settings.lat) : 21.4225
     const lon = (settings && settings.lon != null) ? Number(settings.lon) : 39.8262
+    const methodKey = (settings && settings.method) ? String(settings.method) : 'default'
+    const cacheKey = `prayer_cache:${formatDate(useDate)}:${lat}:${lon}:${methodKey}`
+    try{
+      if(typeof window !== 'undefined' && window.localStorage){
+        const raw = localStorage.getItem(cacheKey)
+        if(raw){
+          const parsed = JSON.parse(raw)
+          if(parsed && parsed.ts && parsed.data){
+            const age = Date.now() - Number(parsed.ts)
+            const ttl = (12*60*60*1000) // 12 hours
+            if(age >= 0 && age < ttl){
+              return parsed.data
+            }
+          }
+        }
+      }
+    }catch(_e){ /* ignore cache errors */ }
+    const ts = Math.floor(useDate.getTime()/1000)
+    // map common method names to AlAdhan method ids (best-effort)
     // map common method names to AlAdhan method ids (best-effort)
     const methodMap = {
       MuslimWorldLeague: 3,
@@ -48,7 +67,9 @@ export async function fetchPrayerTimesForDate(date, settings){
     const t = j.data.timings
     // normalize to HH:MM
     const normalize = s => { if(!s) return null; const m = s.match(/(\d{1,2}:\d{2})/); return m ? m[1] : s }
-    return { Fajr: normalize(t.Fajr), Dhuhr: normalize(t.Dhuhr), Asr: normalize(t.Asr), Maghrib: normalize(t.Maghrib), Isha: normalize(t.Isha) }
+    const result = { Fajr: normalize(t.Fajr), Dhuhr: normalize(t.Dhuhr), Asr: normalize(t.Asr), Maghrib: normalize(t.Maghrib), Isha: normalize(t.Isha) }
+    try{ if(typeof window !== 'undefined' && window.localStorage){ localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: result })) } }catch(_e){ /* ignore cache write errors */ }
+    return result
   }catch(e){
     try{ if(process.env.NODE_ENV !== 'production') console.warn('prayerUtils.fetchPrayerTimesForDate failed', e && e.message) }catch{ /* ignore */ }
     return null
