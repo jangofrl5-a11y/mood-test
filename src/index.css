@@ -201,3 +201,23 @@ button:focus-visible {
 }
 .chip:hover { transform: translateY(-4px) scale(1.02); background: rgba(255,255,255,0.035) }
 
+/* Trial display font (Montserrat) for header elements */
+.trial-display {
+  font-family: 'Montserrat', Inter, system-ui, sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.trial-pill {
+  font-family: 'Montserrat', Inter, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.trial-year {
+  font-family: 'Montserrat', Inter, system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: none;
+}
+
